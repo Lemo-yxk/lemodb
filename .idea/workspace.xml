@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="c51c8e02-00b7-4fc1-aeea-2c17eb788cba" name="Default Changelist" comment="" />
+    <list default="true" id="c51c8e02-00b7-4fc1-aeea-2c17eb788cba" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -15,10 +19,14 @@
     </option>
   </component>
   <component name="GOROOT" path="/usr/local/Cellar/go/1.14.3/libexec" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="GoLibraries">
     <option name="indexEntireGoPath" value="false" />
   </component>
   <component name="ProjectId" id="1dFlroqn2VRqtRXzEUZvSX2GVhd" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="autoscrollFromSource" value="true" />
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -86,22 +94,26 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="515" y="157" key="#go_build_lemodb/example/0.23.1680.978@0.23.1680.978" timestamp="1592056889975" />
-    <state width="1161" height="271" key="GridCell.Tab.0.bottom" timestamp="1592287564228">
+    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1592292883458">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="271" key="GridCell.Tab.0.bottom/0.23.1680.978@0.23.1680.978" timestamp="1592287564228" />
-    <state width="1161" height="271" key="GridCell.Tab.0.center" timestamp="1592287564227">
+    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1592292883458" />
+    <state width="1161" height="271" key="GridCell.Tab.0.bottom" timestamp="1592292734846">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="271" key="GridCell.Tab.0.center/0.23.1680.978@0.23.1680.978" timestamp="1592287564227" />
-    <state width="1161" height="271" key="GridCell.Tab.0.left" timestamp="1592287564227">
+    <state width="1161" height="271" key="GridCell.Tab.0.bottom/0.23.1680.978@0.23.1680.978" timestamp="1592292734846" />
+    <state width="1161" height="271" key="GridCell.Tab.0.center" timestamp="1592292734846">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="271" key="GridCell.Tab.0.left/0.23.1680.978@0.23.1680.978" timestamp="1592287564227" />
-    <state width="1161" height="271" key="GridCell.Tab.0.right" timestamp="1592287564228">
+    <state width="1161" height="271" key="GridCell.Tab.0.center/0.23.1680.978@0.23.1680.978" timestamp="1592292734846" />
+    <state width="1161" height="271" key="GridCell.Tab.0.left" timestamp="1592292734845">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="271" key="GridCell.Tab.0.right/0.23.1680.978@0.23.1680.978" timestamp="1592287564228" />
+    <state width="1161" height="271" key="GridCell.Tab.0.left/0.23.1680.978@0.23.1680.978" timestamp="1592292734845" />
+    <state width="1161" height="271" key="GridCell.Tab.0.right" timestamp="1592292734846">
+      <screen x="0" y="23" width="1680" height="978" />
+    </state>
+    <state width="1161" height="271" key="GridCell.Tab.0.right/0.23.1680.978@0.23.1680.978" timestamp="1592292734846" />
     <state width="1161" height="334" key="GridCell.Tab.1.bottom" timestamp="1592153139850">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
