@@ -303,7 +303,11 @@ func (db *DB) SetEntry(entry *entry) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = encode(db.string[entry.key], byte(STRING), entry.meta, uint32(time.Now().Unix())+entry.ttl, []byte(entry.key), entry.value)
+	if entry.ttl > 0 {
+		entry.ttl += uint32(time.Now().Unix())
+	}
+
+	var item = encode(db.string[entry.key], byte(STRING), entry.meta, entry.ttl, []byte(entry.key), entry.value)
 
 	db.string[entry.key] = item
 
@@ -376,7 +380,10 @@ func (db *DB) LPush(key string, value ...[]byte) {
 func (db *DB) LPushEntry(entry *entry) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
-	var item = encode(db.string[entry.key], byte(LIST), entry.meta, uint32(time.Now().Unix())+entry.ttl, []byte(entry.key), entry.value)
+	if entry.ttl > 0 {
+		entry.ttl += uint32(time.Now().Unix())
+	}
+	var item = encode(db.string[entry.key], byte(LIST), entry.meta, entry.ttl, []byte(entry.key), entry.value)
 	db.list[entry.key] = append([][]byte{item}, db.list[entry.key]...)
 	panicIfNotNil(db.binLog.Write(item))
 }

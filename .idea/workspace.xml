@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="c51c8e02-00b7-4fc1-aeea-2c17eb788cba" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/db.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -34,6 +33,7 @@
   </component>
   <component name="PropertiesComponent">
     <property name="DefaultGoTemplateProperty" value="Go File" />
+    <property name="GO_FMT" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -78,6 +78,10 @@
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="2" />
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="1.change name." />
+    <option name="LAST_COMMIT_MESSAGE" value="1.change name." />
+  </component>
   <component name="VgoProject">
     <integration-enabled>true</integration-enabled>
   </component>
@@ -94,10 +98,10 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="515" y="157" key="#go_build_lemodb/example/0.23.1680.978@0.23.1680.978" timestamp="1592056889975" />
-    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1592292883458">
+    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1592292906114">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1592292883458" />
+    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1592292906114" />
     <state width="1161" height="271" key="GridCell.Tab.0.bottom" timestamp="1592292734846">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
@@ -134,6 +138,10 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="570" y="251" width="540" height="540" key="StructurePopup/0.23.1680.978@0.23.1680.978" timestamp="1592063978175" />
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2" timestamp="1592292908047">
+      <screen x="0" y="23" width="1680" height="978" />
+    </state>
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2/0.23.1680.978@0.23.1680.978" timestamp="1592292908047" />
     <state x="100" y="123" width="1480" height="778" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1592151612174">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
