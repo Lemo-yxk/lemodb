@@ -195,6 +195,7 @@ func (db *DB) DropAll() {
 	defer db.mux.Unlock()
 	db.string = make(map[string][]byte)
 	db.list = make(map[string][][]byte)
+	db.index = 0
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
 }
@@ -205,7 +206,7 @@ func (db *DB) Index() int64 {
 	return db.index
 }
 
-func (db *DB) load(r io.Reader) {
+func (db *DB) load(r io.Reader) []byte {
 
 	var reader = reader()
 
@@ -241,6 +242,7 @@ func (db *DB) load(r io.Reader) {
 		db.incIndex()
 	})
 
+	return allBytes
 }
 
 func (db *DB) Restore(r io.Reader) {
@@ -249,7 +251,9 @@ func (db *DB) Restore(r io.Reader) {
 	db.string = make(map[string][]byte)
 	db.list = make(map[string][][]byte)
 	db.index = 0
-	db.load(r)
+	panicIfNotNil(db.binData.Truncate(0))
+	panicIfNotNil(db.binLog.Truncate(0))
+	panicIfNotNil(db.binData.Write(db.load(r)))
 }
 
 func (db *DB) Backup(w io.Writer) {
