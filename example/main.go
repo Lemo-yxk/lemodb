@@ -22,6 +22,7 @@ func init() {
 
 func main() {
 	var db = lemodb.Open("./example/data")
+	db.Close()
 	// db.Set("hello", []byte("world"))
 
 	// db.SetEntry(lemodb.NewEntry("hello",[]byte("world")).WithTTL(1))
@@ -48,7 +49,7 @@ func main() {
 	// db.LPushEntry(lemodb.NewEntry("a",[]byte("c")).WithTTL(15))
 	// // log.Println(db.Count())
 	// log.Println(db.RPop("a"))
-	// db.Del("a")
+	db.Del("a")
 
 	// for j := 0; j <= 10000; j++ {
 	// 	// db.Get(strconv.Itoa(j))

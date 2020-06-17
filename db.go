@@ -43,6 +43,7 @@ var indexPath = ""
 
 func (db *DB) Start() {
 	db.once.Do(func() {
+
 		if db.option == nil {
 			panic("option is nil")
 		}
@@ -50,6 +51,10 @@ func (db *DB) Start() {
 		if db.option.Path == "" {
 			panic("path is nil")
 		}
+
+		log = db.option.Logger
+
+		var t = time.Now()
 
 		var absPath, err = filepath.Abs(db.option.Path)
 		panicIfNotNil(err)
@@ -65,8 +70,6 @@ func (db *DB) Start() {
 		binLogCopyPath = path.Join(db.option.Path, "binlogcopy")
 		binDataCopyPath = path.Join(db.option.Path, "bindatacopy")
 
-		log = db.option.Logger
-
 		db.openFile()
 
 		db.load(db.binData, false)
@@ -74,6 +77,8 @@ func (db *DB) Start() {
 		db.load(db.binLog, true)
 
 		db.compressed()
+
+		log.Infof("start success in %d ms\n", time.Now().Sub(t).Milliseconds())
 	})
 }
 
