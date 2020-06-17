@@ -11,24 +11,25 @@
 package lemodb
 
 import (
+	"encoding/binary"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
 type DB struct {
-	option  *Option
-	binLog  *os.File
-	binData *os.File
-	index   int64
-	mux     sync.RWMutex
-	once    sync.Once
-	comMux  sync.RWMutex
+	option    *Option
+	binLog    *os.File
+	binData   *os.File
+	indexFile *os.File
+	index     uint64
+	mux       sync.RWMutex
+	once      sync.Once
+	comMux    sync.RWMutex
 
 	string map[string][]byte
 	list   map[string][][]byte
@@ -38,6 +39,7 @@ var binDataPath = ""
 var binLogPath = ""
 var binDataCopyPath = ""
 var binLogCopyPath = ""
+var indexPath = ""
 
 func (db *DB) Start() {
 	db.once.Do(func() {
@@ -59,6 +61,7 @@ func (db *DB) Start() {
 
 		binDataPath = path.Join(db.option.Path, "bindata")
 		binLogPath = path.Join(db.option.Path, "binlog")
+		indexPath = path.Join(db.option.Path, "index")
 		binLogCopyPath = path.Join(db.option.Path, "binlogcopy")
 		binDataCopyPath = path.Join(db.option.Path, "bindatacopy")
 
@@ -66,17 +69,19 @@ func (db *DB) Start() {
 
 		db.openFile()
 
-		db.load(db.binData)
+		db.load(db.binData, false)
 
-		db.load(db.binLog)
+		db.load(db.binLog, true)
 
 		db.compressed()
 	})
 }
 
 func (db *DB) Close() {
+	_ = db.indexFile.Close()
 	_ = db.binLog.Close()
 	_ = db.binData.Close()
+	_ = db.indexFile.Sync()
 	_ = db.binLog.Sync()
 	_ = db.binData.Sync()
 }
@@ -84,6 +89,7 @@ func (db *DB) Close() {
 func (db *DB) openFile() {
 	db.openBinLog()
 	db.openBinData()
+	db.openIndex()
 }
 
 func (db *DB) exists(path string) bool {
@@ -97,6 +103,19 @@ func (db *DB) exists(path string) bool {
 	}
 
 	panic(err)
+}
+
+func (db *DB) openIndex() {
+	if !db.exists(db.option.Path) {
+		panicIfNotNil(os.MkdirAll(db.option.Path, 0755))
+	}
+	f, err := os.OpenFile(indexPath, os.O_RDWR|os.O_CREATE, 0666)
+	panicIfNotNil(err)
+	db.indexFile = f
+}
+
+func (db *DB) closeIndex() error {
+	return db.indexFile.Close()
 }
 
 func (db *DB) openBinLog() {
@@ -141,10 +160,6 @@ func (db *DB) openBinDataCopy() *os.File {
 	f, err := os.OpenFile(binDataCopyPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	panicIfNotNil(err)
 	return f
-}
-
-func (db *DB) incIndex() {
-	atomic.AddInt64(&db.index, 1)
 }
 
 func (db *DB) compressed() {
@@ -198,15 +213,26 @@ func (db *DB) DropAll() {
 	db.index = 0
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
+	panicIfNotNil(db.indexFile.Truncate(0))
 }
 
-func (db *DB) Index() int64 {
+func (db *DB) Index() uint64 {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 	return db.index
 }
 
-func (db *DB) load(r io.Reader) []byte {
+func (db *DB) load(r io.Reader, incIndex bool) []byte {
+
+	if incIndex {
+		var buf = make([]byte, 8)
+		_, err := db.indexFile.ReadAt(buf, 0)
+		if err != nil {
+			db.index = 0
+		} else {
+			db.index = binary.LittleEndian.Uint64(buf)
+		}
+	}
 
 	var reader = reader()
 
@@ -222,14 +248,18 @@ func (db *DB) load(r io.Reader) []byte {
 		case STRING:
 			if ttl > 8 && time.Now().Unix() > int64(ttl) {
 				delete(db.string, key)
-				db.incIndex()
+				if incIndex {
+					db.index++
+				}
 				return
 			}
 			db.string[key] = bytes
 		case LIST:
 			if ttl > 8 && time.Now().Unix() > int64(ttl) {
 				delete(db.list, key)
-				db.incIndex()
+				if incIndex {
+					db.index++
+				}
 				return
 			}
 			if ttl == 1 {
@@ -239,8 +269,16 @@ func (db *DB) load(r io.Reader) []byte {
 			}
 		}
 
-		db.incIndex()
+		if incIndex {
+			db.index++
+		}
 	})
+
+	if incIndex {
+		var buf = make([]byte, 8)
+		binary.LittleEndian.PutUint64(buf, db.index)
+		panicIfNotNil(db.indexFile.WriteAt(buf, 0))
+	}
 
 	return allBytes
 }
@@ -248,18 +286,32 @@ func (db *DB) load(r io.Reader) []byte {
 func (db *DB) Restore(r io.Reader) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
+
+	var buf = make([]byte, 8)
+	_, err := r.Read(buf)
+	if err != nil {
+		db.index = 0
+	} else {
+		db.index = binary.LittleEndian.Uint64(buf)
+	}
+
 	db.string = make(map[string][]byte)
 	db.list = make(map[string][][]byte)
-	db.index = 0
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
-	panicIfNotNil(db.binData.Write(db.load(r)))
+	panicIfNotNil(db.indexFile.WriteAt(buf, 0))
+	panicIfNotNil(db.binData.Write(db.load(r, false)))
 }
 
 func (db *DB) Backup(w io.Writer) {
 	db.mux.Lock()
 
+	var buf = make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, uint64(db.index))
+
 	var res []byte
+
+	res = append(res, buf...)
 
 	for _, item := range db.string {
 		res = append(res, item...)
@@ -316,6 +368,7 @@ func (db *DB) SetEntry(entry *entry) {
 	db.string[entry.key] = item
 
 	panicIfNotNil(db.binLog.Write(item))
+	db.index++
 }
 
 func (db *DB) Set(key string, value []byte) {
@@ -327,6 +380,7 @@ func (db *DB) Set(key string, value []byte) {
 	db.string[key] = item
 
 	panicIfNotNil(db.binLog.Write(item))
+	db.index++
 }
 
 type entry struct {
@@ -368,6 +422,7 @@ func (db *DB) Del(key string) {
 	}
 
 	panicIfNotNil(db.binLog.Write(item))
+	db.index++
 }
 
 func (db *DB) LPush(key string, value ...[]byte) {
@@ -378,6 +433,7 @@ func (db *DB) LPush(key string, value ...[]byte) {
 		var item = encode(nil, byte(LIST), 0, 0, []byte(key), value[i])
 		db.list[key] = append([][]byte{item}, db.list[key]...)
 		panicIfNotNil(db.binLog.Write(item))
+		db.index++
 	}
 }
 
@@ -390,6 +446,7 @@ func (db *DB) LPushEntry(entry *entry) {
 	var item = encode(db.string[entry.key], byte(LIST), entry.meta, entry.ttl, []byte(entry.key), entry.value)
 	db.list[entry.key] = append([][]byte{item}, db.list[entry.key]...)
 	panicIfNotNil(db.binLog.Write(item))
+	db.index++
 }
 
 func (db *DB) RPop(key string) *Item {
@@ -409,6 +466,7 @@ func (db *DB) RPop(key string) *Item {
 	}
 
 	panicIfNotNil(db.binLog.Write(encode(nil, byte(LIST), 0, 1, []byte(key), nil)))
+	db.index++
 
 	keyType, meta, t, k, v := decode(item)
 	return &Item{

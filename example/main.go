@@ -13,7 +13,7 @@ package main
 import (
 	"log"
 
-	"lemodb"
+	"github.com/Lemo-yxk/lemodb"
 )
 
 func init() {
@@ -23,6 +23,7 @@ func init() {
 func main() {
 	var db = lemodb.Open("./example/data")
 	// db.Set("hello", []byte("world"))
+
 	// db.SetEntry(lemodb.NewEntry("hello",[]byte("world")).WithTTL(1))
 	// db.Del("hello")
 	// db.LPush("a", []byte("a"), []byte("b"))
@@ -48,6 +49,14 @@ func main() {
 	// // log.Println(db.Count())
 	// log.Println(db.RPop("a"))
 	// db.Del("a")
-	log.Println(db.RPop("a"))
+
+	// for j := 0; j <= 10000; j++ {
+	// 	// db.Get(strconv.Itoa(j))
+	// 	go db.Set(strconv.Itoa(j), []byte("a"))
+	// }
+
+	log.Println(db.Index())
+
+	// time.Sleep(5 * time.Second)
 	// _ = db
 }

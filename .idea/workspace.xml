@@ -4,6 +4,8 @@
     <list default="true" id="c51c8e02-00b7-4fc1-aeea-2c17eb788cba" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/db.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/db_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/example/main.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -51,7 +53,16 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager" selected="Go Build.go build lemodb/example (1)">
+  <component name="RunManager" selected="Go Build.go build github.com/Lemo-yxk/lemodb/example">
+    <configuration name="go build github.com/Lemo-yxk/lemodb/example" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="lemodb" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <filePath value="$PROJECT_DIR$/example/main.go" />
+      <package value="github.com/Lemo-yxk/lemodb/example" />
+      <directory value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
     <configuration name="go build lemodb/example (1)" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="lemodb" />
       <working_directory value="$PROJECT_DIR$" />
@@ -70,6 +81,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Build.go build github.com/Lemo-yxk/lemodb/example" />
         <item itemvalue="Go Build.go build lemodb/example (1)" />
         <item itemvalue="Go Build.go build lemodb/example" />
       </list>
@@ -99,26 +111,30 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="515" y="157" key="#go_build_lemodb/example/0.23.1680.978@0.23.1680.978" timestamp="1592056889975" />
-    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1592298109308">
+    <state x="515" y="157" key="#go_build_lemodb/example_(1)" timestamp="1592399872142">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1592298109308" />
-    <state width="1161" height="271" key="GridCell.Tab.0.bottom" timestamp="1592292734846">
+    <state x="515" y="157" key="#go_build_lemodb/example_(1)/0.23.1680.978@0.23.1680.978" timestamp="1592399872142" />
+    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1592300367024">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="271" key="GridCell.Tab.0.bottom/0.23.1680.978@0.23.1680.978" timestamp="1592292734846" />
-    <state width="1161" height="271" key="GridCell.Tab.0.center" timestamp="1592292734846">
+    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1592300367024" />
+    <state width="1161" height="271" key="GridCell.Tab.0.bottom" timestamp="1592404921216">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="271" key="GridCell.Tab.0.center/0.23.1680.978@0.23.1680.978" timestamp="1592292734846" />
-    <state width="1161" height="271" key="GridCell.Tab.0.left" timestamp="1592292734845">
+    <state width="1161" height="271" key="GridCell.Tab.0.bottom/0.23.1680.978@0.23.1680.978" timestamp="1592404921216" />
+    <state width="1161" height="271" key="GridCell.Tab.0.center" timestamp="1592404921215">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="271" key="GridCell.Tab.0.left/0.23.1680.978@0.23.1680.978" timestamp="1592292734845" />
-    <state width="1161" height="271" key="GridCell.Tab.0.right" timestamp="1592292734846">
+    <state width="1161" height="271" key="GridCell.Tab.0.center/0.23.1680.978@0.23.1680.978" timestamp="1592404921215" />
+    <state width="1161" height="271" key="GridCell.Tab.0.left" timestamp="1592404921215">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="271" key="GridCell.Tab.0.right/0.23.1680.978@0.23.1680.978" timestamp="1592292734846" />
+    <state width="1161" height="271" key="GridCell.Tab.0.left/0.23.1680.978@0.23.1680.978" timestamp="1592404921215" />
+    <state width="1161" height="271" key="GridCell.Tab.0.right" timestamp="1592404921216">
+      <screen x="0" y="23" width="1680" height="978" />
+    </state>
+    <state width="1161" height="271" key="GridCell.Tab.0.right/0.23.1680.978@0.23.1680.978" timestamp="1592404921216" />
     <state width="1161" height="334" key="GridCell.Tab.1.bottom" timestamp="1592153139850">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
@@ -139,18 +155,18 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="570" y="251" width="540" height="540" key="StructurePopup/0.23.1680.978@0.23.1680.978" timestamp="1592063978175" />
-    <state x="440" y="253" key="Vcs.Push.Dialog.v2" timestamp="1592298110465">
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2" timestamp="1592300368851">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="440" y="253" key="Vcs.Push.Dialog.v2/0.23.1680.978@0.23.1680.978" timestamp="1592298110465" />
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2/0.23.1680.978@0.23.1680.978" timestamp="1592300368851" />
     <state x="100" y="123" width="1480" height="778" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1592151612174">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="100" y="123" width="1480" height="778" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.23.1680.978@0.23.1680.978" timestamp="1592151612174" />
-    <state x="522" y="267" width="635" height="490" key="find.popup" timestamp="1592145185000">
+    <state x="522" y="267" width="635" height="490" key="find.popup" timestamp="1592401524095">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="522" y="267" width="635" height="490" key="find.popup/0.23.1680.978@0.23.1680.978" timestamp="1592145185000" />
+    <state x="522" y="267" width="635" height="490" key="find.popup/0.23.1680.978@0.23.1680.978" timestamp="1592401524095" />
     <state x="505" y="238" width="670" height="676" key="search.everywhere.popup" timestamp="1592204370196">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
