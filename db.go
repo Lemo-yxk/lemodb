@@ -346,13 +346,7 @@ func (db *DB) Get(key string) *Item {
 		return nil
 	}
 	keyType, meta, t, k, v := decode(item)
-	return &Item{
-		key:     k,
-		value:   v,
-		keyType: Type(keyType),
-		meta:    meta,
-		ttl:     t,
-	}
+	return &Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t}
 }
 
 func (db *DB) SetEntry(entry *entry) {
@@ -469,13 +463,7 @@ func (db *DB) RPop(key string) *Item {
 	db.index++
 
 	keyType, meta, t, k, v := decode(item)
-	return &Item{
-		key:     k,
-		value:   v,
-		keyType: Type(keyType),
-		meta:    meta,
-		ttl:     t,
-	}
+	return &Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t}
 }
 
 func (db *DB) List(key string) []*Item {
@@ -491,19 +479,45 @@ func (db *DB) List(key string) []*Item {
 
 	for i := 0; i < len(item); i++ {
 		keyType, meta, t, k, v := decode(item[i])
-		res = append(res, &Item{
-			key:     k,
-			value:   v,
-			keyType: Type(keyType),
-			meta:    meta,
-			ttl:     t,
-		})
+		res = append(res, &Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t})
 	}
 
 	return res
 }
 
-func (db *DB) Range(fn func(key string) bool) {
+func (db *DB) Range(fn func(keyType Type, meta byte, key string) bool) {
+	for key, value := range db.string {
+		if !fn(Type(value[0]), value[1], key) {
+			return
+		}
+	}
+	for key, values := range db.list {
+		for i := 0; i < len(values); i++ {
+			if !fn(Type(values[i][0]), values[i][1], key) {
+				return
+			}
+		}
+	}
+}
+
+func (db *DB) Values(fn func(item *Item) bool) {
+	for _, value := range db.string {
+		keyType, meta, t, k, v := decode(value)
+		if !fn(&Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t}) {
+			return
+		}
+	}
+	for _, values := range db.list {
+		for i := 0; i < len(values); i++ {
+			keyType, meta, t, k, v := decode(values[i])
+			if !fn(&Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t}) {
+				return
+			}
+		}
+	}
+}
+
+func (db *DB) Keys(fn func(key string) bool) {
 	for key := range db.string {
 		if !fn(key) {
 			return
