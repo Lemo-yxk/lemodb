@@ -78,6 +78,8 @@ func (db *DB) Start() {
 }
 
 func (db *DB) Close() {
+	db.mux.Lock()
+	defer db.mux.Unlock()
 	_ = db.indexFile.Close()
 	_ = db.binLog.Close()
 	_ = db.binData.Close()
@@ -87,6 +89,8 @@ func (db *DB) Close() {
 }
 
 func (db *DB) openFile() {
+	db.mux.Lock()
+	defer db.mux.Unlock()
 	db.openBinLog()
 	db.openBinData()
 	db.openIndex()
@@ -174,13 +178,15 @@ func (db *DB) compressed() {
 
 	db.mux.Lock()
 
-	db.Close()
+	_ = db.binLog.Close()
+	_ = db.binData.Close()
 
 	// rename
 	panicIfNotNil(os.Rename(binDataPath, binDataCopyPath))
 	panicIfNotNil(os.Rename(binLogPath, binLogCopyPath))
 
-	db.openFile()
+	db.openBinLog()
+	db.openBinData()
 
 	db.mux.Unlock()
 
