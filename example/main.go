@@ -22,7 +22,7 @@ func init() {
 
 func main() {
 	var db = lemodb.Open("./example/data")
-	db.Close()
+
 	// db.Set("hello", []byte("world"))
 
 	// db.SetEntry(lemodb.NewEntry("hello",[]byte("world")).WithTTL(1))
@@ -49,15 +49,44 @@ func main() {
 	// db.LPushEntry(lemodb.NewEntry("a",[]byte("c")).WithTTL(15))
 	// // log.Println(db.Count())
 	// log.Println(db.RPop("a"))
-	db.Del("a")
 
 	// for j := 0; j <= 10000; j++ {
 	// 	// db.Get(strconv.Itoa(j))
 	// 	go db.Set(strconv.Itoa(j), []byte("a"))
 	// }
 
-	log.Println(db.Index())
-
+	// log.Println(db.Index())
+	// db.LPush("a", "1", "2")
+	// db.Meta("400000", 1)
+	// db.Del("hello-999999")
+	// log.Println(db.Get("hello-499999").Value())
+	// db.Set("hello", "world")
+	// db.TTL("hello", 8*time.Second)
 	// time.Sleep(5 * time.Second)
-	// _ = db
+
+	// for i := 0; i < 2000000; i++ {
+	// 	// var key = fmt.Sprintf("hello-%d",i)
+	// 	db.Set(strconv.Itoa(i), strings.Repeat("a", 1024))
+	// }
+
+	// db.LPush("hello","world")
+	// db.LRem("hello",1)
+	// db.LSet("hello",4,"3")
+	// log.Println(db.List("hello").Value())
+	// log.Println(db.RPop("a"))
+
+	// db.HSet("a", "1", "2")
+	// db.HMeta(0, "a", "1")
+
+	// res,_ := db.List("b")
+	// res.Data()[0] = nil
+	//
+	// log.Println(db.List("b"))
+
+	db.Keys(func(tp lemodb.Type, key string) bool {
+		log.Println(tp, key)
+		return true
+	})
+
+	_ = db
 }

@@ -10,57 +10,82 @@
 
 package lemodb
 
-import "fmt"
-
 type Type byte
 
 const (
 	STRING Type = iota
 	LIST
+	HASH
 )
 
 func (t Type) String() string {
 	switch t {
-	case 0:
+	case STRING:
 		return "string"
-	case 1:
+	case LIST:
 		return "list"
+	case HASH:
+		return "hash"
 	}
 	panic("unknown key type")
 }
 
-type Item struct {
-	key     []byte
-	value   []byte
-	keyType Type
-	meta    byte
-	ttl     uint32
+type base struct {
+	key  []byte
+	ttl  int64
+	tp   Type
+	data interface{}
 }
 
-func (i *Item) String() string {
-	return fmt.Sprintf("Meta: %d, Type: %s, TTL: %d, Key: %s, Value: %s", i.meta, i.keyType, i.ttl, i.key, i.value)
+type val struct {
+	value []byte
+	meta  byte
 }
 
-func (i *Item) Value() []byte {
-	var value = make([]byte, len(i.value))
-	copy(value, i.value)
-	return value
+type String struct {
+	data *val
 }
 
-func (i *Item) Key() []byte {
-	var key = make([]byte, len(i.key))
-	copy(key, i.key)
-	return key
+type List struct {
+	data []*val
 }
 
-func (i *Item) TTL() uint32 {
-	return i.ttl
+type Hash struct {
+	data map[string]*val
 }
 
-func (i *Item) Meta() byte {
-	return i.meta
+func (v *val) Meta() byte {
+	return v.meta
 }
 
-func (i *Item) Type() Type {
-	return i.keyType
+func (v *val) Value() string {
+	return string(v.value)
+}
+
+func (s *String) Meta() byte {
+	return s.Meta()
+}
+
+func (s *String) Value() string {
+	return s.Value()
+}
+
+func (l *List) Range(fn func(val *val)) {
+	for i := 0; i < len(l.data); i++ {
+		fn(l.data[i])
+	}
+}
+
+func (l *List) Len() int {
+	return len(l.data)
+}
+
+func (h *Hash) Range(fn func(key string, val *val)) {
+	for key, val := range h.data {
+		fn(key, val)
+	}
+}
+
+func (h *Hash) Len() int {
+	return len(h.data)
 }

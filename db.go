@@ -12,6 +12,7 @@ package lemodb
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -31,8 +32,7 @@ type DB struct {
 	once      sync.Once
 	comMux    sync.RWMutex
 
-	string map[string][]byte
-	list   map[string][][]byte
+	data map[string]*base
 }
 
 var binDataPath = ""
@@ -61,8 +61,7 @@ func (db *DB) Start() {
 
 		db.option.Path = absPath
 
-		db.string = make(map[string][]byte)
-		db.list = make(map[string][][]byte)
+		db.data = make(map[string]*base)
 
 		binDataPath = path.Join(db.option.Path, "bindata")
 		binLogPath = path.Join(db.option.Path, "binlog")
@@ -198,13 +197,29 @@ func (db *DB) compressed() {
 	// rewrite
 
 	var res []byte
-	for _, item := range db.string {
-		res = append(res, item...)
-	}
+	var counter = 0
+	var size = 1024 * 1024 * 256
+	for _, item := range db.data {
 
-	for _, item := range db.list {
-		for i := len(item) - 1; i >= 0; i-- {
-			res = append(res, item[i]...)
+		switch item.tp {
+		case STRING:
+			var d = encodeString(item)
+			res = append(res, d...)
+			counter += len(d)
+		case LIST:
+			var d = encodeList(item)
+			res = append(res, d...)
+			counter += len(d)
+		case HASH:
+			var d = encodeHash(item)
+			res = append(res, d...)
+			counter += len(d)
+		}
+
+		if counter >= size {
+			panicIfNotNil(db.binData.Write(res[0:counter]))
+			res = res[counter:]
+			counter = 0
 		}
 	}
 
@@ -219,8 +234,7 @@ func (db *DB) compressed() {
 func (db *DB) DropAll() {
 	db.mux.Lock()
 	defer db.mux.Unlock()
-	db.string = make(map[string][]byte)
-	db.list = make(map[string][][]byte)
+	db.data = make(map[string]*base)
 	db.index = 0
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
@@ -250,34 +264,142 @@ func (db *DB) load(r io.Reader, incIndex bool) []byte {
 	allBytes, err := ioutil.ReadAll(r)
 	panicIfNotNil(err)
 
-	reader(allBytes, func(bytes []byte) {
-		ttl := getTTL(bytes)
-		key := string(getKey(bytes))
-		keyType := Type(getKeyType(bytes))
+	reader(allBytes, func(message []byte) {
+		var command = Command(message[0])
 
-		switch keyType {
-		case STRING:
-			if ttl > 8 && time.Now().Unix() > int64(ttl) {
-				delete(db.string, key)
-				if incIndex {
-					db.index++
+		switch command {
+		case HSET:
+			key, k, v := decodeHSet(message)
+			var sk = string(key)
+			if db.data[sk] == nil {
+				db.data[sk] = &base{
+					key: key, ttl: 0, tp: HASH,
+					data: &Hash{
+						data: map[string]*val{string(k): {meta: 0, value: v}},
+					},
 				}
-				return
-			}
-			db.string[key] = bytes
-		case LIST:
-			if ttl > 8 && time.Now().Unix() > int64(ttl) {
-				delete(db.list, key)
-				if incIndex {
-					db.index++
-				}
-				return
-			}
-			if ttl == 1 {
-				db.list[key] = db.list[key][0 : len(db.list[key])-1]
 			} else {
-				db.list[key] = append([][]byte{bytes}, db.list[key]...)
+				var hash = db.data[sk].data.(*Hash)
+				if hash.data[string(k)] == nil {
+					hash.data[string(k)] = &val{meta: 0, value: v}
+				} else {
+					hash.data[string(k)].value = v
+				}
 			}
+		case HDEL:
+			key, k := decodeHDel(message)
+			var sk = string(key)
+			var hash = db.data[sk].data.(*Hash)
+			delete(hash.data, string(k))
+			if len(hash.data) == 0 {
+				delete(db.data, sk)
+			}
+		case SET:
+			key, v := decodeSet(message)
+			var k = string(key)
+			if db.data[k] == nil {
+				db.data[k] = &base{
+					key: key, ttl: 0, tp: STRING,
+					data: &String{
+						data: &val{meta: 0, value: v},
+					},
+				}
+			} else {
+				var str = db.data[k].data.(*String)
+				str.data.value = v
+			}
+		case DEL:
+			key := decodeDel(message)
+			delete(db.data, string(key))
+		case TTL:
+			ttl, key := decodeTTL(message)
+			if ttl != 0 && ttl < time.Now().UnixNano() {
+				delete(db.data, string(key))
+			} else {
+				db.data[string(key)].ttl = ttl
+			}
+		case LPUSH:
+			key, v := decodeLPush(message)
+			var k = string(key)
+			if db.data[k] == nil {
+				db.data[k] = &base{
+					key: key, ttl: 0, tp: LIST,
+					data: &List{
+						data: []*val{{meta: 0, value: v}},
+					},
+				}
+			} else {
+				var list = db.data[k].data.(*List)
+				list.data = append([]*val{{meta: 0, value: v}}, list.data...)
+			}
+		case RPOP:
+			key := decodeRPop(message)
+			var k = string(key)
+			var list = db.data[k].data.(*List)
+			list.data = list.data[0 : len(list.data)-1]
+			if len(list.data) == 0 {
+				delete(db.data, k)
+			}
+		case LREM:
+			index, key := decodeLRem(message)
+			var k = string(key)
+			var list = db.data[k].data.(*List)
+			l := len(list.data)
+			if index < 0 {
+				panic("index is less than 0")
+			}
+			if index > l-1 {
+				panic("index overflow")
+			}
+
+			list.data = append(list.data[0:index], list.data[index+1:]...)
+			if len(list.data) == 0 {
+				delete(db.data, k)
+			}
+		case LSET:
+			// TODO
+			// if not exists, return nil
+			index, key, v := decodeLSet(message)
+			var k = string(key)
+			var list = db.data[k].data.(*List)
+			l := len(list.data)
+			if index < 0 {
+				panic("index is less than 0")
+			}
+			if index > l-1 {
+				panic("index overflow")
+			}
+
+			list.data = append(list.data, nil)
+
+			for i := l; i > index; i-- {
+				list.data[l] = list.data[l-1]
+			}
+
+			list.data[index] = &val{value: v, meta: 0}
+		case META:
+			meta, key := decodeMeta(message)
+			db.data[string(key)].data.(*String).data.meta = meta
+		case LMETA:
+			meta, index, key := decodeLMeta(message)
+			var k = string(key)
+			var list = db.data[k].data.(*List)
+			l := len(list.data)
+			if index < 0 {
+				panic("index is less than 0")
+			}
+			if index > l-1 {
+				panic("index overflow")
+			}
+
+			list.data[index].meta = meta
+		case HMETA:
+			meta, key, k := decodeHMeta(message)
+			var sk = string(key)
+			var hash = db.data[sk].data.(*Hash)
+			hash.data[string(k)].meta = meta
+		default:
+			panic("unknown command")
 		}
 
 		if incIndex {
@@ -306,8 +428,7 @@ func (db *DB) Restore(r io.Reader) {
 		db.index = binary.LittleEndian.Uint64(buf)
 	}
 
-	db.string = make(map[string][]byte)
-	db.list = make(map[string][][]byte)
+	db.data = make(map[string]*base)
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
 	panicIfNotNil(db.indexFile.WriteAt(buf, 0))
@@ -318,19 +439,23 @@ func (db *DB) Backup(w io.Writer) {
 	db.mux.Lock()
 
 	var buf = make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, uint64(db.index))
+	binary.LittleEndian.PutUint64(buf, db.index)
 
 	var res []byte
 
 	res = append(res, buf...)
 
-	for _, item := range db.string {
-		res = append(res, item...)
-	}
-
-	for _, item := range db.list {
-		for i := len(item) - 1; i >= 0; i-- {
-			res = append(res, item[i]...)
+	for _, item := range db.data {
+		switch item.tp {
+		case STRING:
+			var d = encodeString(item)
+			res = append(res, d...)
+		case LIST:
+			var d = encodeList(item)
+			res = append(res, d...)
+		case HASH:
+			var d = encodeHash(item)
+			res = append(res, d...)
 		}
 	}
 
@@ -342,200 +467,511 @@ func (db *DB) Backup(w io.Writer) {
 func (db *DB) Count() int {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
-	return len(db.string) + len(db.list)
+	return len(db.data)
 }
 
-func (db *DB) Get(key string) *Item {
+func (db *DB) Get(key string) (*String, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
-	var item = db.string[key]
+	var item = db.data[key]
+
 	if item == nil {
-		return nil
+		return nil, fmt.Errorf("%s: not found", key)
 	}
-	var ttl = getTTL(item)
-	if ttl > 8 && time.Now().Unix() > int64(ttl) {
-		return nil
+
+	if item.tp != STRING {
+		return nil, fmt.Errorf("%s: is not string type", key)
 	}
-	keyType, meta, t, k, v := decode(item)
-	return &Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t}
+
+	if item.ttl != 0 && item.ttl < time.Now().UnixNano() {
+		return nil, fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
+	}
+
+	return item.data.(*String), nil
 }
 
-func (db *DB) SetEntry(entry *entry) {
+func (db *DB) HGet(key string, k string) (*val, error) {
+	db.mux.RLock()
+	defer db.mux.RUnlock()
+
+	if db.data[key] == nil {
+		return nil, fmt.Errorf("%s: not found", key)
+	}
+
+	if db.data[key].tp != HASH {
+		return nil, fmt.Errorf("%s: is not hash type", key)
+	}
+
+	if db.data[key].ttl != 0 && db.data[key].ttl < time.Now().UnixNano() {
+		return nil, fmt.Errorf("expired: %d ms", (db.data[key].ttl-time.Now().UnixNano())/1e6)
+	}
+
+	var hash = db.data[key].data.(*Hash)
+
+	if hash.data[k] == nil {
+		return nil, fmt.Errorf("%s: not found in hash", k)
+	}
+
+	return hash.data[k], nil
+}
+
+func (db *DB) HGetAll(key string) (*Hash, error) {
+	db.mux.RLock()
+	defer db.mux.RUnlock()
+
+	if db.data[key] == nil {
+		return nil, fmt.Errorf("%s: not found", key)
+	}
+
+	if db.data[key].tp != HASH {
+		return nil, fmt.Errorf("%s: is not hash type", key)
+	}
+
+	if db.data[key].ttl != 0 && db.data[key].ttl < time.Now().UnixNano() {
+		return nil, fmt.Errorf("expired: %d ms", (db.data[key].ttl-time.Now().UnixNano())/1e6)
+	}
+
+	return db.data[key].data.(*Hash), nil
+}
+
+func (db *DB) Set(key string, value string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	if entry.ttl > 0 {
-		entry.ttl += uint32(time.Now().Unix())
+	if db.data[key] != nil && db.data[key].tp != STRING {
+		return fmt.Errorf("%s: is not string type", key)
 	}
 
-	var item = encode(db.string[entry.key], byte(STRING), entry.meta, entry.ttl, []byte(entry.key), entry.value)
+	var k = []byte(key)
+	var v = []byte(value)
 
-	db.string[entry.key] = item
+	if err := checkKey(k); err != nil {
+		return err
+	}
+	if err := checkValue(v); err != nil {
+		return err
+	}
 
-	panicIfNotNil(db.binLog.Write(item))
+	if db.data[key] == nil {
+		db.data[key] = &base{
+			key: k, ttl: 0, tp: STRING,
+			data: &String{
+				data: &val{meta: 0, value: v},
+			},
+		}
+	} else {
+		db.data[key].data.(*String).data.value = v
+	}
+
+	panicIfNotNil(db.binLog.Write(encodeSet(k, v)))
 	db.index++
+
+	return nil
 }
 
-func (db *DB) Set(key string, value []byte) {
+func (db *DB) HSet(key string, k string, v string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = encode(db.string[key], byte(STRING), 0, 0, []byte(key), value)
-
-	db.string[key] = item
-
-	panicIfNotNil(db.binLog.Write(item))
-	db.index++
-}
-
-type entry struct {
-	key     string
-	value   []byte
-	meta    byte
-	ttl     uint32
-	keyType Type
-}
-
-func (entry *entry) WithTTL(ttl int) *entry {
-	entry.ttl = uint32(ttl)
-	return entry
-}
-
-func (entry *entry) WithMeta(meta byte) *entry {
-	entry.meta = meta
-	return entry
-}
-
-func NewEntry(key string, value []byte) *entry {
-	return &entry{key: key, value: value}
-}
-
-func (db *DB) Del(key string) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-
-	var item []byte
-
-	if db.string[key] != nil {
-		delete(db.string, key)
-		item = encode(nil, byte(STRING), 0, 9, []byte(key), nil)
+	if db.data[key] != nil && db.data[key].tp != HASH {
+		return fmt.Errorf("%s: is not hash type", key)
 	}
 
-	if db.list[key] != nil {
-		delete(db.list, key)
-		item = encode(nil, byte(LIST), 0, 9, []byte(key), nil)
+	var kk = []byte(key)
+	var hk = []byte(k)
+	var hv = []byte(v)
+
+	if err := checkKey(kk); err != nil {
+		return err
+	}
+	if err := checkKey(hk); err != nil {
+		return err
+	}
+	if err := checkValue(hv); err != nil {
+		return err
 	}
 
-	panicIfNotNil(db.binLog.Write(item))
+	if db.data[key] == nil {
+		db.data[key] = &base{
+			key: kk, ttl: 0, tp: HASH,
+			data: &Hash{
+				data: map[string]*val{k: {meta: 0, value: hv}},
+			},
+		}
+	} else {
+		var hash = db.data[key].data.(*Hash)
+		if hash.data[k] == nil {
+			hash.data[k] = &val{meta: 0, value: hv}
+		} else {
+			hash.data[k].value = hv
+		}
+	}
+
+	panicIfNotNil(db.binLog.Write(encodeHSet(kk, hk, hv)))
 	db.index++
+
+	return nil
 }
 
-func (db *DB) LPush(key string, value ...[]byte) {
+func (db *DB) Meta(key string, meta byte) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
+
+	var item = db.data[key]
+	if item == nil {
+		return fmt.Errorf("%s: not found", key)
+	}
+
+	if db.data[key] != nil && db.data[key].tp != STRING {
+		return fmt.Errorf("%s: is not string type", key)
+	}
+
+	item.data.(*String).data.meta = meta
+
+	panicIfNotNil(db.binLog.Write(encodeMeta(meta, []byte(key))))
+	db.index++
+
+	return nil
+}
+
+func (db *DB) TTL(key string) (time.Duration, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+	if item == nil {
+		return 0, fmt.Errorf("%s: not found", key)
+	}
+
+	if item.ttl == 0 {
+		return 0, nil
+	}
+
+	if item.ttl < time.Now().UnixNano() {
+		return 0, fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
+	}
+
+	return time.Duration(item.ttl - time.Now().UnixNano()), nil
+}
+
+func (db *DB) Expired(key string, ttl time.Duration) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+	if item == nil {
+		return fmt.Errorf("%s: not found", key)
+	}
+
+	var t = time.Now().Add(ttl).UnixNano()
+	item.ttl = t
+
+	panicIfNotNil(db.binLog.Write(encodeTTL([]byte(key), t)))
+	db.index++
+
+	return nil
+}
+
+func (db *DB) Del(key string) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+	if item == nil {
+		return fmt.Errorf("%s: not found", key)
+	}
+
+	delete(db.data, key)
+
+	panicIfNotNil(db.binLog.Write(encodeDel([]byte(key))))
+	db.index++
+
+	return nil
+}
+
+func (db *DB) HDel(key string, k string) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+	if item == nil {
+		return fmt.Errorf("%s: not found", key)
+	}
+
+	if db.data[key] != nil && db.data[key].tp != HASH {
+		return fmt.Errorf("%s: is not hash type", key)
+	}
+
+	var hash = item.data.(*Hash)
+
+	if hash.data[k] == nil {
+		return fmt.Errorf("%s: not found in hash", k)
+	}
+
+	delete(hash.data, k)
+
+	if len(hash.data) == 0 {
+		delete(db.data, key)
+	}
+
+	panicIfNotNil(db.binLog.Write(encodeHDel([]byte(key), []byte(k))))
+	db.index++
+
+	return nil
+}
+
+func (db *DB) HMeta(meta byte, key string, k string) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+	if item == nil {
+		return fmt.Errorf("%s: not found", key)
+	}
+
+	if db.data[key] != nil && db.data[key].tp != HASH {
+		return fmt.Errorf("%s: is not hash type", key)
+	}
+
+	var hash = item.data.(*Hash)
+
+	if hash.data[k] == nil {
+		return fmt.Errorf("%s: not found in hash", k)
+	}
+
+	hash.data[k].meta = meta
+
+	panicIfNotNil(db.binLog.Write(encodeHMeta(meta, []byte(key), []byte(k))))
+	db.index++
+
+	return nil
+}
+
+func (db *DB) LMeta(meta byte, key string, index int) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+	if item == nil {
+		return fmt.Errorf("%s: not found", key)
+	}
+
+	if db.data[key] != nil && db.data[key].tp != LIST {
+		return fmt.Errorf("%s: is not list type", key)
+	}
+
+	var list = item.data.(*List)
+
+	var l = len(list.data)
+
+	if index < 0 {
+		return fmt.Errorf("%d: less than 0", index)
+	}
+	if index > l-1 {
+		return fmt.Errorf("%d: overflow %d", index, l-1)
+	}
+
+	list.data[index].meta = meta
+
+	panicIfNotNil(db.binLog.Write(encodeLMeta(meta, index, []byte(key))))
+	db.index++
+
+	return nil
+}
+
+func (db *DB) LPush(key string, value ...string) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var l = len(value)
+	if l == 0 {
+		return fmt.Errorf("value is empty")
+	}
+
+	if db.data[key] != nil && db.data[key].tp != LIST {
+		return fmt.Errorf("%s: is not list type", key)
+	}
+
+	var k = []byte(key)
+	if err := checkKey(k); err != nil {
+		return err
+	}
+	for i := 0; i < len(value); i++ {
+		if err := checkValue([]byte(value[i])); err != nil {
+			return err
+		}
+	}
+
+	if db.data[key] == nil {
+		db.data[key] = &base{
+			key: k, ttl: 0, tp: LIST,
+			data: &List{
+				data: []*val{},
+			},
+		}
+	}
+
+	var list = db.data[key].data.(*List)
 
 	for i := 0; i < len(value); i++ {
-		var item = encode(nil, byte(LIST), 0, 0, []byte(key), value[i])
-		db.list[key] = append([][]byte{item}, db.list[key]...)
-		panicIfNotNil(db.binLog.Write(item))
+		list.data = append([]*val{{meta: 0, value: []byte(value[i])}}, list.data...)
+		panicIfNotNil(db.binLog.Write(encodeLPush(k, []byte(value[i]))))
 		db.index++
 	}
+
+	return nil
 }
 
-func (db *DB) LPushEntry(entry *entry) {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-	if entry.ttl > 0 {
-		entry.ttl += uint32(time.Now().Unix())
-	}
-	var item = encode(db.string[entry.key], byte(LIST), entry.meta, entry.ttl, []byte(entry.key), entry.value)
-	db.list[entry.key] = append([][]byte{item}, db.list[entry.key]...)
-	panicIfNotNil(db.binLog.Write(item))
-	db.index++
-}
-
-func (db *DB) RPop(key string) *Item {
+func (db *DB) RPop(key string) (*val, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	if len(db.list[key]) == 0 {
-		return nil
-	}
+	var item = db.data[key]
 
-	var item = db.list[key][len(db.list[key])-1]
-	db.list[key] = db.list[key][0 : len(db.list[key])-1]
-
-	var ttl = getTTL(item)
-	if ttl > 8 && time.Now().Unix() > int64(ttl) {
-		return nil
-	}
-
-	panicIfNotNil(db.binLog.Write(encode(nil, byte(LIST), 0, 1, []byte(key), nil)))
-	db.index++
-
-	keyType, meta, t, k, v := decode(item)
-	return &Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t}
-}
-
-func (db *DB) List(key string) []*Item {
-	db.mux.Lock()
-	defer db.mux.Unlock()
-
-	var item = db.list[key]
 	if item == nil {
-		return nil
+		return nil, fmt.Errorf("%s: not found", key)
 	}
 
-	var res []*Item
-
-	for i := 0; i < len(item); i++ {
-		keyType, meta, t, k, v := decode(item[i])
-		res = append(res, &Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t})
+	if db.data[key] != nil && db.data[key].tp != LIST {
+		return nil, fmt.Errorf("%s: is not list type", key)
 	}
 
-	return res
+	var list = item.data.(*List)
+
+	var l = len(list.data)
+
+	var value = list.data[l-1]
+
+	list.data = list.data[0 : l-1]
+
+	if len(list.data) == 0 {
+		delete(db.data, key)
+	}
+
+	if item.ttl != 0 && item.ttl < time.Now().UnixNano() {
+		return nil, fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
+	}
+
+	panicIfNotNil(db.binLog.Write(encodeRPop([]byte(key))))
+	db.index++
+
+	return value, nil
 }
 
-func (db *DB) Range(fn func(keyType Type, meta byte, key string) bool) {
-	for key, value := range db.string {
-		if !fn(Type(value[0]), value[1], key) {
-			return
-		}
+func (db *DB) LRem(key string, index int) (*val, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+
+	if item == nil {
+		return nil, fmt.Errorf("%s: not found", key)
 	}
-	for key, values := range db.list {
-		for i := 0; i < len(values); i++ {
-			if !fn(Type(values[i][0]), values[i][1], key) {
-				return
-			}
-		}
+
+	if db.data[key] != nil && db.data[key].tp != LIST {
+		return nil, fmt.Errorf("%s: is not list type", key)
 	}
+
+	var list = item.data.(*List)
+
+	var l = len(list.data)
+
+	if index < 0 {
+		return nil, fmt.Errorf("%d: less than 0", index)
+	}
+	if index > l-1 {
+		return nil, fmt.Errorf("%d: overflow %d", index, l-1)
+	}
+
+	var value = list.data[index]
+
+	list.data = append(list.data[0:index], list.data[index+1:]...)
+
+	if len(list.data) == 0 {
+		delete(db.data, key)
+	}
+
+	if item.ttl != 0 && item.ttl < time.Now().UnixNano() {
+		return nil, fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
+	}
+
+	panicIfNotNil(db.binLog.Write(encodeLRem([]byte(key), index)))
+	db.index++
+
+	return value, nil
 }
 
-func (db *DB) Values(fn func(item *Item) bool) {
-	for _, value := range db.string {
-		keyType, meta, t, k, v := decode(value)
-		if !fn(&Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t}) {
-			return
-		}
+func (db *DB) LSet(key string, index int, value string) error {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+
+	if item == nil {
+		return fmt.Errorf("%s: not found", key)
 	}
-	for _, values := range db.list {
-		for i := 0; i < len(values); i++ {
-			keyType, meta, t, k, v := decode(values[i])
-			if !fn(&Item{key: k, value: v, keyType: Type(keyType), meta: meta, ttl: t}) {
-				return
-			}
-		}
+
+	if db.data[key] != nil && db.data[key].tp != LIST {
+		return fmt.Errorf("%s: is not list type", key)
 	}
+
+	var k = []byte(key)
+	var v = []byte(value)
+	if err := checkKey(k); err != nil {
+		return err
+	}
+	if err := checkValue(v); err != nil {
+		return err
+	}
+
+	var list = item.data.(*List)
+
+	var l = len(list.data)
+
+	if index < 0 {
+		return fmt.Errorf("%d: less than 0", index)
+	}
+	if index > l-1 {
+		return fmt.Errorf("%d: overflow %d", index, l-1)
+	}
+
+	list.data = append(list.data, nil)
+
+	for i := l; i > index; i-- {
+		list.data[l] = list.data[l-1]
+	}
+
+	list.data[index] = &val{value: v, meta: 0}
+
+	panicIfNotNil(db.binLog.Write(encodeLSet(k, index, v)))
+	db.index++
+
+	return nil
 }
 
-func (db *DB) Keys(fn func(key string) bool) {
-	for key := range db.string {
-		if !fn(key) {
-			return
-		}
+func (db *DB) List(key string) (*List, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+	if item == nil {
+		return nil, fmt.Errorf("%s: not found", key)
 	}
-	for key := range db.list {
-		if !fn(key) {
+
+	if db.data[key] != nil && db.data[key].tp != LIST {
+		return nil, fmt.Errorf("%s: is not list type", key)
+	}
+
+	if item.ttl != 0 && item.ttl < time.Now().UnixNano() {
+		return nil, fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
+	}
+
+	return item.data.(*List), nil
+}
+
+func (db *DB) Keys(fn func(tp Type, key string) bool) {
+	for key, value := range db.data {
+		if !fn(value.tp, key) {
 			return
 		}
 	}

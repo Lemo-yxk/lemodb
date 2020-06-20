@@ -6,7 +6,18 @@
       <w>bindatacopy</w>
       <w>binlogcopy</w>
       <w>copylog</w>
+      <w>hdel</w>
+      <w>hget</w>
+      <w>hmeta</w>
+      <w>hset</w>
       <w>lemo</w>
+      <w>lemodb</w>
+      <w>lmeta</w>
+      <w>lpush</w>
+      <w>lrem</w>
+      <w>lset</w>
+      <w>maxkeylen</w>
+      <w>maxvaluelen</w>
       <w>rpop</w>
     </words>
   </dictionary>
