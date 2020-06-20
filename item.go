@@ -63,11 +63,11 @@ func (v *Val) Value() string {
 }
 
 func (s *String) Meta() byte {
-	return s.Meta()
+	return s.data.Meta()
 }
 
 func (s *String) Value() string {
-	return s.Value()
+	return s.data.Value()
 }
 
 func (l *List) Range(fn func(val *Val)) {
