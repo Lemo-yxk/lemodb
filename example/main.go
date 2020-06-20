@@ -83,8 +83,26 @@ func main() {
 	//
 	// log.Println(db.List("b"))
 
-	db.Keys(func(tp lemodb.Type, key string) bool {
-		log.Println(tp, key)
+	db.DropAll()
+
+	db.LPush("a", "1", "2")
+
+	var res, _ = db.List("a")
+	var dres []string
+	res.Range(func(val *lemodb.Val) {
+		if val.Meta() == 0 {
+			dres = append(dres, val.Value())
+		}
+	})
+
+	for i := 0; i < len(dres); i++ {
+		db.LRemV("a", dres[i])
+	}
+
+	log.Println(db.List("a"))
+
+	db.Keys(func(tp lemodb.Type, ttl int64, key string) bool {
+		log.Println(tp, ttl, key)
 		return true
 	})
 

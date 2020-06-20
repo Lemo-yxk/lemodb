@@ -37,28 +37,28 @@ type base struct {
 	data interface{}
 }
 
-type val struct {
+type Val struct {
 	value []byte
 	meta  byte
 }
 
 type String struct {
-	data *val
+	data *Val
 }
 
 type List struct {
-	data []*val
+	data []*Val
 }
 
 type Hash struct {
-	data map[string]*val
+	data map[string]*Val
 }
 
-func (v *val) Meta() byte {
+func (v *Val) Meta() byte {
 	return v.meta
 }
 
-func (v *val) Value() string {
+func (v *Val) Value() string {
 	return string(v.value)
 }
 
@@ -70,7 +70,7 @@ func (s *String) Value() string {
 	return s.Value()
 }
 
-func (l *List) Range(fn func(val *val)) {
+func (l *List) Range(fn func(val *Val)) {
 	for i := 0; i < len(l.data); i++ {
 		fn(l.data[i])
 	}
@@ -80,7 +80,7 @@ func (l *List) Len() int {
 	return len(l.data)
 }
 
-func (h *Hash) Range(fn func(key string, val *val)) {
+func (h *Hash) Range(fn func(key string, val *Val)) {
 	for key, val := range h.data {
 		fn(key, val)
 	}

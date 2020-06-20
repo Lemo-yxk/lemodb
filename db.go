@@ -275,13 +275,13 @@ func (db *DB) load(r io.Reader, incIndex bool) []byte {
 				db.data[sk] = &base{
 					key: key, ttl: 0, tp: HASH,
 					data: &Hash{
-						data: map[string]*val{string(k): {meta: 0, value: v}},
+						data: map[string]*Val{string(k): {meta: 0, value: v}},
 					},
 				}
 			} else {
 				var hash = db.data[sk].data.(*Hash)
 				if hash.data[string(k)] == nil {
-					hash.data[string(k)] = &val{meta: 0, value: v}
+					hash.data[string(k)] = &Val{meta: 0, value: v}
 				} else {
 					hash.data[string(k)].value = v
 				}
@@ -301,7 +301,7 @@ func (db *DB) load(r io.Reader, incIndex bool) []byte {
 				db.data[k] = &base{
 					key: key, ttl: 0, tp: STRING,
 					data: &String{
-						data: &val{meta: 0, value: v},
+						data: &Val{meta: 0, value: v},
 					},
 				}
 			} else {
@@ -325,12 +325,12 @@ func (db *DB) load(r io.Reader, incIndex bool) []byte {
 				db.data[k] = &base{
 					key: key, ttl: 0, tp: LIST,
 					data: &List{
-						data: []*val{{meta: 0, value: v}},
+						data: []*Val{{meta: 0, value: v}},
 					},
 				}
 			} else {
 				var list = db.data[k].data.(*List)
-				list.data = append([]*val{{meta: 0, value: v}}, list.data...)
+				list.data = append([]*Val{{meta: 0, value: v}}, list.data...)
 			}
 		case RPOP:
 			key := decodeRPop(message)
@@ -376,7 +376,7 @@ func (db *DB) load(r io.Reader, incIndex bool) []byte {
 				list.data[l] = list.data[l-1]
 			}
 
-			list.data[index] = &val{value: v, meta: 0}
+			list.data[index] = &Val{value: v, meta: 0}
 		case META:
 			meta, key := decodeMeta(message)
 			db.data[string(key)].data.(*String).data.meta = meta
@@ -490,7 +490,7 @@ func (db *DB) Get(key string) (*String, error) {
 	return item.data.(*String), nil
 }
 
-func (db *DB) HGet(key string, k string) (*val, error) {
+func (db *DB) HGet(key string, k string) (*Val, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
@@ -556,7 +556,7 @@ func (db *DB) Set(key string, value string) error {
 		db.data[key] = &base{
 			key: k, ttl: 0, tp: STRING,
 			data: &String{
-				data: &val{meta: 0, value: v},
+				data: &Val{meta: 0, value: v},
 			},
 		}
 	} else {
@@ -595,13 +595,13 @@ func (db *DB) HSet(key string, k string, v string) error {
 		db.data[key] = &base{
 			key: kk, ttl: 0, tp: HASH,
 			data: &Hash{
-				data: map[string]*val{k: {meta: 0, value: hv}},
+				data: map[string]*Val{k: {meta: 0, value: hv}},
 			},
 		}
 	} else {
 		var hash = db.data[key].data.(*Hash)
 		if hash.data[k] == nil {
-			hash.data[k] = &val{meta: 0, value: hv}
+			hash.data[k] = &Val{meta: 0, value: hv}
 		} else {
 			hash.data[k].value = hv
 		}
@@ -622,7 +622,7 @@ func (db *DB) Meta(key string, meta byte) error {
 		return fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key] != nil && db.data[key].tp != STRING {
+	if item.tp != STRING {
 		return fmt.Errorf("%s: is not string type", key)
 	}
 
@@ -698,7 +698,7 @@ func (db *DB) HDel(key string, k string) error {
 		return fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key] != nil && db.data[key].tp != HASH {
+	if item.tp != HASH {
 		return fmt.Errorf("%s: is not hash type", key)
 	}
 
@@ -729,7 +729,7 @@ func (db *DB) HMeta(meta byte, key string, k string) error {
 		return fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key] != nil && db.data[key].tp != HASH {
+	if item.tp != HASH {
 		return fmt.Errorf("%s: is not hash type", key)
 	}
 
@@ -756,7 +756,7 @@ func (db *DB) LMeta(meta byte, key string, index int) error {
 		return fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key] != nil && db.data[key].tp != LIST {
+	if item.tp != LIST {
 		return fmt.Errorf("%s: is not list type", key)
 	}
 
@@ -806,7 +806,7 @@ func (db *DB) LPush(key string, value ...string) error {
 		db.data[key] = &base{
 			key: k, ttl: 0, tp: LIST,
 			data: &List{
-				data: []*val{},
+				data: []*Val{},
 			},
 		}
 	}
@@ -814,7 +814,7 @@ func (db *DB) LPush(key string, value ...string) error {
 	var list = db.data[key].data.(*List)
 
 	for i := 0; i < len(value); i++ {
-		list.data = append([]*val{{meta: 0, value: []byte(value[i])}}, list.data...)
+		list.data = append([]*Val{{meta: 0, value: []byte(value[i])}}, list.data...)
 		panicIfNotNil(db.binLog.Write(encodeLPush(k, []byte(value[i]))))
 		db.index++
 	}
@@ -822,7 +822,7 @@ func (db *DB) LPush(key string, value ...string) error {
 	return nil
 }
 
-func (db *DB) RPop(key string) (*val, error) {
+func (db *DB) RPop(key string) (*Val, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
@@ -832,7 +832,7 @@ func (db *DB) RPop(key string) (*val, error) {
 		return nil, fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key] != nil && db.data[key].tp != LIST {
+	if item.tp != LIST {
 		return nil, fmt.Errorf("%s: is not list type", key)
 	}
 
@@ -858,7 +858,53 @@ func (db *DB) RPop(key string) (*val, error) {
 	return value, nil
 }
 
-func (db *DB) LRem(key string, index int) (*val, error) {
+func (db *DB) LRemV(key string, value string) (*Val, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+
+	var item = db.data[key]
+
+	if item == nil {
+		return nil, fmt.Errorf("%s: not found", key)
+	}
+
+	if item.tp != LIST {
+		return nil, fmt.Errorf("%s: is not list type", key)
+	}
+
+	var list = item.data.(*List)
+
+	var index = -1
+	for i := 0; i < len(list.data); i++ {
+		if string(list.data[i].value) == value {
+			index = i
+			break
+		}
+	}
+
+	if index == -1 {
+		return nil, fmt.Errorf("%s: %s not found", key, value)
+	}
+
+	var remVal = list.data[index]
+
+	list.data = append(list.data[0:index], list.data[index+1:]...)
+
+	if len(list.data) == 0 {
+		delete(db.data, key)
+	}
+
+	if item.ttl != 0 && item.ttl < time.Now().UnixNano() {
+		return nil, fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
+	}
+
+	panicIfNotNil(db.binLog.Write(encodeLRem([]byte(key), index)))
+	db.index++
+
+	return remVal, nil
+}
+
+func (db *DB) LRem(key string, index int) (*Val, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
@@ -883,7 +929,7 @@ func (db *DB) LRem(key string, index int) (*val, error) {
 		return nil, fmt.Errorf("%d: overflow %d", index, l-1)
 	}
 
-	var value = list.data[index]
+	var remVal = list.data[index]
 
 	list.data = append(list.data[0:index], list.data[index+1:]...)
 
@@ -898,7 +944,7 @@ func (db *DB) LRem(key string, index int) (*val, error) {
 	panicIfNotNil(db.binLog.Write(encodeLRem([]byte(key), index)))
 	db.index++
 
-	return value, nil
+	return remVal, nil
 }
 
 func (db *DB) LSet(key string, index int, value string) error {
@@ -911,7 +957,7 @@ func (db *DB) LSet(key string, index int, value string) error {
 		return fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key] != nil && db.data[key].tp != LIST {
+	if item.tp != LIST {
 		return fmt.Errorf("%s: is not list type", key)
 	}
 
@@ -941,7 +987,7 @@ func (db *DB) LSet(key string, index int, value string) error {
 		list.data[l] = list.data[l-1]
 	}
 
-	list.data[index] = &val{value: v, meta: 0}
+	list.data[index] = &Val{value: v, meta: 0}
 
 	panicIfNotNil(db.binLog.Write(encodeLSet(k, index, v)))
 	db.index++
@@ -958,7 +1004,7 @@ func (db *DB) List(key string) (*List, error) {
 		return nil, fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key] != nil && db.data[key].tp != LIST {
+	if item.tp != LIST {
 		return nil, fmt.Errorf("%s: is not list type", key)
 	}
 
@@ -969,9 +1015,9 @@ func (db *DB) List(key string) (*List, error) {
 	return item.data.(*List), nil
 }
 
-func (db *DB) Keys(fn func(tp Type, key string) bool) {
+func (db *DB) Keys(fn func(tp Type, ttl int64, key string) bool) {
 	for key, value := range db.data {
-		if !fn(value.tp, key) {
+		if !fn(value.tp, time.Duration(value.ttl).Milliseconds(), key) {
 			return
 		}
 	}

@@ -23,7 +23,7 @@ func assert(t *testing.T, condition bool, args ...interface{}) {
 
 func getList(list *List) string {
 	var s = ""
-	list.Range(func(val *val) {
+	list.Range(func(val *Val) {
 		s += val.Value()
 	})
 	return s
