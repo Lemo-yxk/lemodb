@@ -172,18 +172,18 @@ func (db *DB) DelayStart() {
 	db.writer = db.binTran
 }
 
-func (db *DB) DelayCommit() {
+func (db *DB) DelayCommit() uint64 {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 	if !db.isTranRunning {
-		return
+		return db.index
 	}
 
 	var bts, err = ioutil.ReadAll(db.writer)
 	panicIfNotNil(err)
 
 	if len(bts) == 0 {
-		return
+		return db.index
 	}
 
 	var counter = db.read(bts)
@@ -191,6 +191,8 @@ func (db *DB) DelayCommit() {
 	db.index += counter
 
 	panicIfNotNil(db.binLog.Write(bts))
+
+	return db.index
 }
 
 func (db *DB) DelayEnd() {
@@ -205,8 +207,9 @@ func (db *DB) Transaction() {
 	db.DelayStart()
 }
 
-func (db *DB) Commit() {
-	db.DelayCommit()
+func (db *DB) Commit() uint64 {
+	var index = db.DelayCommit()
 	db.DelayEnd()
 	db.tranMux.Unlock()
+	return index
 }
