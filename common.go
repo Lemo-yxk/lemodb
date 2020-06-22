@@ -176,6 +176,11 @@ func (db *DB) Transaction() {
 func (db *DB) Commit() {
 	db.mux.Lock()
 
+	if !db.isTranRunning {
+		db.mux.Unlock()
+		return
+	}
+
 	var bts, err = ioutil.ReadAll(db.writer)
 	panicIfNotNil(err)
 

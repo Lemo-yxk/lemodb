@@ -30,7 +30,6 @@ func getList(list *List) string {
 }
 
 func TestString(t *testing.T) {
-	var db = Open("./example/data")
 
 	// DropAll
 	db.DropAll()
@@ -137,6 +136,4 @@ func TestString(t *testing.T) {
 	// index
 	assert(t, db.Index() != 17, "index err", err)
 
-	// close
-	db.Close()
 }
