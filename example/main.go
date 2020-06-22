@@ -83,28 +83,48 @@ func main() {
 	//
 	// log.Println(db.List("b"))
 
+	// db.DropAll()
+	//
+	// db.LPush("a", "1", "2")
+	//
+	// var res, _ = db.List("a")
+	// var dres []string
+	// res.Range(func(value string) {
+	// 	dres = append(dres, value)
+	// })
+	//
+	// for i := 0; i < len(dres); i++ {
+	// 	db.LRemV("a", dres[i])
+	// }
+	//
+	// log.Println(db.List("a"))
+	//
+	// db.Keys(func(tp lemodb.Type, ttl int64, key string) bool {
+	// 	log.Println(tp, ttl, key)
+	// 	return true
+	// })
+
 	db.DropAll()
 
-	db.LPush("a", "1", "2")
+	db.Transaction()
 
-	var res, _ = db.List("a")
-	var dres []string
-	res.Range(func(val *lemodb.Val) {
-		if val.Meta() == 0 {
-			dres = append(dres, val.Value())
-		}
-	})
-
-	for i := 0; i < len(dres); i++ {
-		db.LRemV("a", dres[i])
-	}
+	_ = db.LPush("a", "1", "2", "3")
 
 	log.Println(db.List("a"))
 
-	db.Keys(func(tp lemodb.Type, ttl int64, key string) bool {
-		log.Println(tp, ttl, key)
-		return true
-	})
+	db.Commit()
+
+	log.Println(db.List("a"))
+
+	db.Transaction()
+
+	_ = db.LPush("b", "1", "2", "3")
+
+	log.Println(db.List("b"))
+
+	db.Commit()
+
+	log.Println(db.List("b"))
 
 	_ = db
 }

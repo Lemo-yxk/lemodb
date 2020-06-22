@@ -60,27 +60,6 @@ import (
 // ...key
 // ...value
 
-// TODO META
-// 0 command
-// 1 meta
-// 2 key len 255
-// ...key
-
-// TODO LMETA
-// 0 command
-// 1 meta
-// 2 - 5 index value int
-// 6 key len 255
-// ...key
-
-// TODO HMETA
-// 0 command
-// 1 meta
-// 2 key len 255
-// 3 k len 255
-// ...key
-// ...k
-
 // TODO HSET
 // 0 command
 // 1 key len 255
@@ -113,16 +92,12 @@ func checkValue(value []byte) error {
 
 func encodeString(item *base) (message []byte) {
 	var str = item.data.(*String)
-	var data = encodeSet(item.key, str.data.value)
+	var data = encodeSet(item.key, str.data)
 
 	var t = time.Now().UnixNano()
 
 	if item.ttl > t {
 		data = append(data, encodeTTL(item.key, item.ttl)...)
-	}
-
-	if str.data.meta != 0 {
-		data = append(data, encodeMeta(str.data.meta, item.key)...)
 	}
 
 	return data
@@ -133,10 +108,7 @@ func encodeList(item *base) (message []byte) {
 	var data []byte
 	var t = time.Now().UnixNano()
 	for i := len(list.data) - 1; i >= 0; i-- {
-		data = append(data, encodeLPush(item.key, list.data[i].value)...)
-		if list.data[i].meta != 0 {
-			data = append(data, encodeMeta(list.data[i].meta, item.key)...)
-		}
+		data = append(data, encodeLPush(item.key, list.data[i])...)
 	}
 	if item.ttl > t {
 		data = append(data, encodeTTL(item.key, item.ttl)...)
@@ -150,10 +122,7 @@ func encodeHash(item *base) (message []byte) {
 	var data []byte
 	var t = time.Now().UnixNano()
 	for key, value := range hash.data {
-		data = append(data, encodeHSet(item.key, []byte(key), value.value)...)
-		if value.meta != 0 {
-			data = append(data, encodeHMeta(value.meta, item.key, []byte(key))...)
-		}
+		data = append(data, encodeHSet(item.key, []byte(key), value)...)
 	}
 
 	if item.ttl > t {
@@ -187,19 +156,6 @@ func encodeHDel(key []byte, k []byte) (message []byte) {
 	data[2] = byte(kl)
 	copy(data[3:3+keyL], key)
 	copy(data[3+keyL:], k)
-	return data
-}
-
-func encodeHMeta(meta byte, key []byte, k []byte) (message []byte) {
-	var keyL = len(key)
-	var kl = len(k)
-	var data = make([]byte, 4+keyL+kl)
-	data[0] = byte(HMETA)
-	data[1] = meta
-	data[2] = byte(keyL)
-	data[3] = byte(kl)
-	copy(data[4:4+keyL], key)
-	copy(data[4+keyL:], k)
 	return data
 }
 
@@ -278,43 +234,25 @@ func encodeLSet(key []byte, index int, value []byte) (message []byte) {
 	return data
 }
 
-func encodeMeta(meta byte, key []byte) (message []byte) {
-	var kl = len(key)
-	var data = make([]byte, 3+kl)
-	data[0] = byte(META)
-	data[1] = meta
-	data[2] = byte(kl)
-	copy(data[3:], key)
-	return data
-}
-
-func encodeLMeta(meta byte, index int, key []byte) (message []byte) {
-	var kl = len(key)
-	var data = make([]byte, 7+kl)
-	data[0] = byte(META)
-	data[1] = meta
-	binary.LittleEndian.PutUint32(data[2:6], uint32(index))
-	data[6] = byte(kl)
-	copy(data[7:], key)
-	return data
-}
-
-func reader() func(buf []byte, fn func(bytes []byte)) {
+func reader() func(buf []byte, fn func(bytes []byte)) uint64 {
 
 	var singleMessageLen = 0
 
-	return func(buf []byte, fn func(bytes []byte)) {
+	return func(buf []byte, fn func(bytes []byte)) uint64 {
+		var counter uint64 = 0
 		for {
 
 			// jump out and read continue
 			if len(buf) == 0 {
-				return
+				return counter
 			}
 
 			// just begin
 			if singleMessageLen == 0 {
 				singleMessageLen = getLen(buf)
 			}
+
+			counter++
 
 			// a complete message
 			fn(buf[0:singleMessageLen])
@@ -325,7 +263,6 @@ func reader() func(buf []byte, fn func(bytes []byte)) {
 			// reset len
 			singleMessageLen = 0
 		}
-
 	}
 }
 
@@ -346,12 +283,6 @@ func getLen(message []byte) int {
 		return 6 + int(message[5])
 	case LSET:
 		return 8 + int(message[5]) + int(binary.LittleEndian.Uint16(message[6:8]))
-	case META:
-		return 3 + int(message[2])
-	case LMETA:
-		return 7 + int(message[6])
-	case HMETA:
-		return 4 + int(message[2]) + int(message[3])
 	case HSET:
 		return 5 + int(message[1]) + int(message[2]) + int(binary.LittleEndian.Uint16(message[3:5]))
 	case HDEL:
@@ -392,19 +323,6 @@ func decodeLSet(message []byte) (index int, key []byte, value []byte) {
 	return int(binary.LittleEndian.Uint32(message[1:5])), message[8 : 8+keyLen], message[8+keyLen:]
 }
 
-func decodeMeta(message []byte) (meta byte, key []byte) {
-	return message[1], message[3:]
-}
-
-func decodeLMeta(message []byte) (meta byte, index int, key []byte) {
-	return message[1], int(binary.LittleEndian.Uint32(message[2:6])), message[6:]
-}
-
-func decodeHMeta(message []byte) (meta byte, key []byte, k []byte) {
-	var keyLen = message[2]
-	return message[1], message[4 : 4+keyLen], message[4+keyLen:]
-}
-
 func decodeHSet(message []byte) (key []byte, k []byte, v []byte) {
 	var keyLen = message[1]
 	var kl = message[2]
@@ -426,9 +344,6 @@ const (
 	RPOP
 	LREM
 	LSET
-	META
-	LMETA
-	HMETA
 	HSET
 	HDEL
 )

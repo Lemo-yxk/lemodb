@@ -14,6 +14,8 @@ import (
 	"testing"
 )
 
+var db = Open("./example/data")
+
 func BenchmarkStdAppLogs_normal_jsoniter(b *testing.B) {
 	//  _ = db.Set("hello", "world")
 
@@ -22,14 +24,13 @@ func BenchmarkStdAppLogs_normal_jsoniter(b *testing.B) {
 	// }
 
 	// fmt.Println(db.Get("hello").Value())
-	var db = Open("./example/data")
 
 	for j := 0; j <= b.N; j++ {
 		// db.Get(strconv.Itoa(j))
 		// db.Set(strconv.Itoa(j), "a")
 		// db.Set(strconv.Itoa(j), strconv.Itoa(j))
-		db.Set("c", "1")
+		// db.Transaction()
+		db.Get("c")
+		// db.Commit()
 	}
-
-	db.Close()
 }

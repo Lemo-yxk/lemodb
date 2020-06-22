@@ -23,8 +23,8 @@ func assert(t *testing.T, condition bool, args ...interface{}) {
 
 func getList(list *List) string {
 	var s = ""
-	list.Range(func(val *Val) {
-		s += val.Value()
+	list.Range(func(value string) {
+		s += value
 	})
 	return s
 }
@@ -45,14 +45,7 @@ func TestString(t *testing.T) {
 	assert(t, err != nil, "string set err", err)
 	str, err := db.Get("a")
 	assert(t, err != nil, "string get err", err)
-	assert(t, str.data.Value() != "1", "string not eq 1")
-	// meta
-	assert(t, str.data.Meta() != 0, "string meta not eq 0")
-	err = db.Meta("a", 1)
-	assert(t, err != nil, "string meta err", err)
-	str, err = db.Get("a")
-	assert(t, err != nil, "string get err", err)
-	assert(t, str.data.Meta() != 1, "string meta not eq 0")
+	assert(t, str.Value() != "1", "string not eq 1")
 	// ttl
 	err = db.Expired("a", time.Second)
 	assert(t, err != nil, "string expired err", err)
@@ -75,7 +68,7 @@ func TestString(t *testing.T) {
 	// lrem
 	val, err := db.LRem("a", 0)
 	assert(t, err != nil, "list lrem err", err)
-	assert(t, val.Value() != "3", "list lrem val err", err)
+	assert(t, val != "3", "list lrem val err", err)
 	assert(t, list.Len() != 2, "list lrem count err", err)
 	assert(t, getList(list) != "21", "list item err", err)
 	// lset
@@ -86,7 +79,7 @@ func TestString(t *testing.T) {
 	// rpop
 	val, err = db.RPop("a")
 	assert(t, err != nil, "list rpop err", err)
-	assert(t, val.Value() != "1", "list rpop val err", err)
+	assert(t, val != "1", "list rpop val err", err)
 	// ttl
 	err = db.Expired("a", time.Second)
 	assert(t, err != nil, "list expired err", err)
@@ -109,10 +102,10 @@ func TestString(t *testing.T) {
 	// hget
 	val, err = db.HGet("a", "1")
 	assert(t, err != nil, "hash hget err", err)
-	assert(t, val.Value() != "2", "hash hget val err", err)
+	assert(t, val != "2", "hash hget val err", err)
 	val, err = db.HGet("a", "3")
 	assert(t, err != nil, "hash hget err", err)
-	assert(t, val.Value() != "4", "hash hget val err", err)
+	assert(t, val != "4", "hash hget val err", err)
 	// hdel
 	err = db.HDel("a", "1")
 	assert(t, err != nil, "hash hdel err", err)
@@ -128,6 +121,18 @@ func TestString(t *testing.T) {
 	// del
 	err = db.Del("a")
 	assert(t, err != nil, "hash del err", err)
+
+	// transaction
+	db.Transaction()
+	err = db.Set("a", "1")
+	assert(t, err != nil, "transaction set err", err)
+	str, err = db.Get("a")
+	assert(t, err == nil, "transaction get err", err)
+	assert(t, str != nil, "transaction get val err", err)
+	db.Commit()
+	str, err = db.Get("a")
+	assert(t, err != nil, "transaction get err", err)
+	assert(t, str.Value() != "1", "transaction get val err", err)
 
 	// index
 	assert(t, db.Index() != 17, "index err", err)

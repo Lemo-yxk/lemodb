@@ -5,6 +5,7 @@
       <w>bindata</w>
       <w>bindatacopy</w>
       <w>binlogcopy</w>
+      <w>bintran</w>
       <w>copylog</w>
       <w>hdel</w>
       <w>hget</w>
