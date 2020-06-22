@@ -182,6 +182,10 @@ func (db *DB) DelayCommit() {
 	var bts, err = ioutil.ReadAll(db.writer)
 	panicIfNotNil(err)
 
+	if len(bts) == 0 {
+		return
+	}
+
 	var counter = db.read(bts)
 
 	db.index += counter
