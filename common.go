@@ -165,19 +165,17 @@ func (db *DB) Keys(fn func(tp Type, ttl int64, key string) bool) {
 	}
 }
 
-func (db *DB) Transaction() {
-	db.tranMux.Lock()
+func (db *DB) DelayStart() {
 	db.mux.Lock()
+	defer db.mux.Unlock()
 	db.isTranRunning = true
 	db.writer = db.binTran
-	db.mux.Unlock()
 }
 
-func (db *DB) Commit() {
+func (db *DB) DelayCommit() {
 	db.mux.Lock()
-
+	defer db.mux.Unlock()
 	if !db.isTranRunning {
-		db.mux.Unlock()
 		return
 	}
 
@@ -188,12 +186,23 @@ func (db *DB) Commit() {
 
 	db.index += counter
 
+	panicIfNotNil(db.binLog.Write(bts))
+}
+
+func (db *DB) DelayEnd() {
+	db.mux.Lock()
+	defer db.mux.Unlock()
 	db.writer = db.binLog
-
-	panicIfNotNil(db.writer.Write(bts))
-
 	db.isTranRunning = false
+}
 
-	db.mux.Unlock()
+func (db *DB) Transaction() {
+	db.tranMux.Lock()
+	db.DelayStart()
+}
+
+func (db *DB) Commit() {
+	db.DelayCommit()
+	db.DelayEnd()
 	db.tranMux.Unlock()
 }
