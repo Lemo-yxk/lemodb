@@ -21,7 +21,7 @@ func init() {
 }
 
 func main() {
-	var db = lemodb.Open("./example/data")
+	var db = lemodb.Open(&lemodb.Option{Path: "./example/data"})
 
 	// db.Set("hello", []byte("world"))
 
@@ -104,27 +104,29 @@ func main() {
 	// 	return true
 	// })
 
-	db.DropAll()
+	// db.DropAll()
+	//
+	// db.Transaction()
+	//
+	// _ = db.LPush("a", "1", "2", "3")
+	//
+	// log.Println(db.List("a"))
+	//
+	// db.Commit()
+	//
+	// log.Println(db.List("a"))
+	//
+	// db.Transaction()
+	//
+	// _ = db.LPush("b", "1", "2", "3")
+	//
+	// log.Println(db.List("b"))
+	//
+	// db.Commit()
+	//
+	// log.Println(db.List("b"))
 
-	db.Transaction()
-
-	_ = db.LPush("a", "1", "2", "3")
-
-	log.Println(db.List("a"))
-
-	db.Commit()
-
-	log.Println(db.List("a"))
-
-	db.Transaction()
-
-	_ = db.LPush("b", "1", "2", "3")
-
-	log.Println(db.List("b"))
-
-	db.Commit()
-
-	log.Println(db.List("b"))
+	log.Println(db.Count())
 
 	_ = db
 }

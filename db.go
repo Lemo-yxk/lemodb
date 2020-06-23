@@ -57,6 +57,10 @@ func (db *DB) Start() {
 			panic("path is nil")
 		}
 
+		if db.option.Logger == nil {
+			db.option.Logger = new(defaultLogger)
+		}
+
 		log = db.option.Logger
 
 		var t = time.Now()
@@ -74,6 +78,8 @@ func (db *DB) Start() {
 		binLogCopyPath = path.Join(db.option.Path, "binlogcopy")
 		binDataCopyPath = path.Join(db.option.Path, "bindatacopy")
 
+		db.checkFile()
+
 		db.openFile()
 
 		db.load(db.binData, false)
@@ -87,7 +93,35 @@ func (db *DB) Start() {
 		db.binTran = new(bytes.Buffer)
 
 		log.Infof("start success in %d ms\n", time.Now().Sub(t).Milliseconds())
+		log.Infof("keys: %d\n", db.Count())
 	})
+}
+
+func (db *DB) checkFile() {
+
+	_, err := os.Stat(binLogCopyPath)
+	if err == nil {
+		// exists
+		var binLogCopyFile = db.openBinLogCopy()
+		db.openBinLog()
+		panicIfNotNil(io.Copy(binLogCopyFile, db.binLog))
+		_ = db.closeBinLog()
+		_ = binLogCopyFile.Close()
+		panicIfNotNil(os.Remove(binLogPath))
+		panicIfNotNil(os.Rename(binLogCopyPath, binLogPath))
+	}
+
+	_, err = os.Stat(binDataCopyPath)
+	if err == nil {
+		// exists
+		var binDataCopyFile = db.openBinDataCopy()
+		db.openBinData()
+		panicIfNotNil(io.Copy(binDataCopyFile, db.binData))
+		_ = db.closeBinData()
+		_ = binDataCopyFile.Close()
+		panicIfNotNil(os.Remove(binDataPath))
+		panicIfNotNil(os.Rename(binDataCopyPath, binDataPath))
+	}
 }
 
 func (db *DB) Close() {
@@ -178,6 +212,16 @@ func (db *DB) openBinDataCopy() *os.File {
 	f, err := os.OpenFile(binDataCopyPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	panicIfNotNil(err)
 	return f
+}
+
+func (db *DB) size() int64 {
+	logInfo, err := db.binLog.Stat()
+	panicIfNotNil(err)
+
+	dataInfo, err := db.binLog.Stat()
+	panicIfNotNil(err)
+
+	return logInfo.Size() + dataInfo.Size()
 }
 
 func (db *DB) compressed() {
@@ -332,8 +376,7 @@ func (db *DB) read(bts []byte) uint64 {
 				delete(db.data, k)
 			}
 		case LSET:
-			// TODO
-			// if not exists, return nil
+
 			index, key, v := decodeLSet(message)
 			var k = string(key)
 			var list = db.data[k].data.(*List)

@@ -11,10 +11,11 @@
 package lemodb
 
 import (
+	"strconv"
 	"testing"
 )
 
-var db = Open("./example/data")
+var db = Open(&Option{Path: "./example/data"})
 
 func BenchmarkStdAppLogs_normal_jsoniter(b *testing.B) {
 	//  _ = db.Set("hello", "world")
@@ -27,10 +28,10 @@ func BenchmarkStdAppLogs_normal_jsoniter(b *testing.B) {
 
 	for j := 0; j <= b.N; j++ {
 		// db.Get(strconv.Itoa(j))
-		// db.Set(strconv.Itoa(j), "a")
+		db.Set(strconv.Itoa(j), "a")
 		// db.Set(strconv.Itoa(j), strconv.Itoa(j))
 		// db.Transaction()
-		db.Get("c")
+		// db.Get("c")
 		// db.Commit()
 	}
 }

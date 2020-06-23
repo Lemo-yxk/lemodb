@@ -10,11 +10,7 @@
 
 package lemodb
 
-func Open(path string) *DB {
-	var option = &Option{
-		Path:   path,
-		Logger: new(defaultLogger),
-	}
+func Open(option *Option) *DB {
 
 	var db = &DB{}
 
