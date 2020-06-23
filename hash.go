@@ -81,20 +81,32 @@ func (db *DB) HSet(key string, k string, v string) error {
 		return err
 	}
 
-	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeHSet(kk, hk, hv)))
-		return nil
-	}
-
 	if db.data[key] == nil {
+
+		if db.isTranRunning {
+			panicIfNotNil(db.writer.Write(encodeHSet(kk, hk, hv)))
+			return nil
+		}
+
 		db.data[key] = &base{
 			key: kk, ttl: 0, tp: HASH,
 			data: &Hash{
 				data: map[string][]byte{k: hv},
 			},
 		}
+
 	} else {
 		var hash = db.data[key].data.(*Hash)
+
+		if string(hash.data[k]) == v {
+			return nil
+		}
+
+		if db.isTranRunning {
+			panicIfNotNil(db.writer.Write(encodeHSet(kk, hk, hv)))
+			return nil
+		}
+
 		hash.data[k] = hv
 	}
 

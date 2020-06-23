@@ -33,20 +33,31 @@ func (db *DB) Set(key string, value string) error {
 		return err
 	}
 
-	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeSet(k, v)))
-		return nil
-	}
-
 	if db.data[key] == nil {
+
+		if db.isTranRunning {
+			panicIfNotNil(db.writer.Write(encodeSet(k, v)))
+			return nil
+		}
 		db.data[key] = &base{
 			key: k, ttl: 0, tp: STRING,
 			data: &String{
 				data: v,
 			},
 		}
+
 	} else {
-		db.data[key].data.(*String).data = v
+		var str = db.data[key].data.(*String)
+		if string(str.data) == value {
+			return nil
+		}
+
+		if db.isTranRunning {
+			panicIfNotNil(db.writer.Write(encodeSet(k, v)))
+			return nil
+		}
+
+		str.data = v
 	}
 
 	panicIfNotNil(db.writer.Write(encodeSet(k, v)))
