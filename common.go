@@ -36,7 +36,7 @@ func (db *DB) Index() uint64 {
 	return db.index
 }
 
-func (db *DB) Restore(r io.Reader) {
+func (db *DB) Restore(r io.Reader) uint64 {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
@@ -54,10 +54,13 @@ func (db *DB) Restore(r io.Reader) {
 	panicIfNotNil(db.indexFile.WriteAt(buf, 0))
 	panicIfNotNil(db.binData.Write(db.load(r, false)))
 	db.binTran = new(bytes.Buffer)
+
+	return db.index
 }
 
-func (db *DB) Backup(w io.Writer) {
+func (db *DB) Backup(w io.Writer) uint64 {
 	db.mux.Lock()
+	defer db.mux.Unlock()
 
 	var buf = make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, db.index)
@@ -80,9 +83,9 @@ func (db *DB) Backup(w io.Writer) {
 		}
 	}
 
-	db.mux.Unlock()
-
 	panicIfNotNil(w.Write(res))
+
+	return db.index
 }
 
 func (db *DB) Count() int {
