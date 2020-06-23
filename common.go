@@ -175,6 +175,13 @@ func (db *DB) DelayStart() {
 	db.writer = db.binTran
 }
 
+func (db *DB) CleanDelayCommit() {
+	db.mux.Lock()
+	defer db.mux.Unlock()
+	db.binTran = new(bytes.Buffer)
+	db.writer = db.binTran
+}
+
 func (db *DB) DelayCommit() uint64 {
 	db.mux.Lock()
 	defer db.mux.Unlock()
