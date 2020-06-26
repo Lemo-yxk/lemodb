@@ -26,6 +26,7 @@ func (db *DB) DropAll() {
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
 	panicIfNotNil(db.indexFile.Truncate(0))
+	db.isTranRunning = false
 	db.binTran.Reset()
 }
 
@@ -52,6 +53,7 @@ func (db *DB) Restore(r io.Reader) uint64 {
 	panicIfNotNil(db.binLog.Truncate(0))
 	panicIfNotNil(db.indexFile.WriteAt(buf, 0))
 	panicIfNotNil(db.binData.Write(db.load(r, false)))
+	db.isTranRunning = false
 	db.binTran.Reset()
 
 	return db.index
@@ -170,8 +172,8 @@ func (db *DB) Keys(fn func(tp Type, ttl int64, key string) bool) {
 func (db *DB) DelayStart() {
 	db.mux.Lock()
 	defer db.mux.Unlock()
-	db.binTran.Reset()
 	db.isTranRunning = true
+	db.binTran.Reset()
 }
 
 func (db *DB) CleanDelayCommit() {
