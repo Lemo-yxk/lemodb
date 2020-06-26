@@ -84,7 +84,7 @@ func (db *DB) HSet(key string, k string, v string) error {
 	if db.data[key] == nil {
 
 		if db.isTranRunning {
-			panicIfNotNil(db.writer.Write(encodeHSet(kk, hk, hv)))
+			panicIfNotNil(db.binTran.Write(encodeHSet(kk, hk, hv)))
 			return nil
 		}
 
@@ -103,14 +103,14 @@ func (db *DB) HSet(key string, k string, v string) error {
 		}
 
 		if db.isTranRunning {
-			panicIfNotNil(db.writer.Write(encodeHSet(kk, hk, hv)))
+			panicIfNotNil(db.binTran.Write(encodeHSet(kk, hk, hv)))
 			return nil
 		}
 
 		hash.data[k] = hv
 	}
 
-	panicIfNotNil(db.writer.Write(encodeHSet(kk, hk, hv)))
+	panicIfNotNil(db.binLog.Write(encodeHSet(kk, hk, hv)))
 	db.index++
 
 	return nil
@@ -136,7 +136,7 @@ func (db *DB) HDel(key string, k string) error {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeHDel([]byte(key), []byte(k))))
+		panicIfNotNil(db.binTran.Write(encodeHDel([]byte(key), []byte(k))))
 		return nil
 	}
 
@@ -146,7 +146,7 @@ func (db *DB) HDel(key string, k string) error {
 		delete(db.data, key)
 	}
 
-	panicIfNotNil(db.writer.Write(encodeHDel([]byte(key), []byte(k))))
+	panicIfNotNil(db.binLog.Write(encodeHDel([]byte(key), []byte(k))))
 	db.index++
 
 	return nil

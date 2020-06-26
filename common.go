@@ -11,7 +11,6 @@
 package lemodb
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -27,7 +26,7 @@ func (db *DB) DropAll() {
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
 	panicIfNotNil(db.indexFile.Truncate(0))
-	db.binTran = new(bytes.Buffer)
+	db.binTran.Reset()
 }
 
 func (db *DB) Index() uint64 {
@@ -53,7 +52,7 @@ func (db *DB) Restore(r io.Reader) uint64 {
 	panicIfNotNil(db.binLog.Truncate(0))
 	panicIfNotNil(db.indexFile.WriteAt(buf, 0))
 	panicIfNotNil(db.binData.Write(db.load(r, false)))
-	db.binTran = new(bytes.Buffer)
+	db.binTran.Reset()
 
 	return db.index
 }
@@ -126,13 +125,13 @@ func (db *DB) Expired(key string, ttl time.Duration) error {
 	var t = time.Now().Add(ttl).UnixNano()
 
 	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeTTL([]byte(key), t)))
+		panicIfNotNil(db.binTran.Write(encodeTTL([]byte(key), t)))
 		return nil
 	}
 
 	item.ttl = t
 
-	panicIfNotNil(db.writer.Write(encodeTTL([]byte(key), t)))
+	panicIfNotNil(db.binLog.Write(encodeTTL([]byte(key), t)))
 	db.index++
 
 	return nil
@@ -148,13 +147,13 @@ func (db *DB) Del(key string) error {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeDel([]byte(key))))
+		panicIfNotNil(db.binTran.Write(encodeDel([]byte(key))))
 		return nil
 	}
 
 	delete(db.data, key)
 
-	panicIfNotNil(db.writer.Write(encodeDel([]byte(key))))
+	panicIfNotNil(db.binLog.Write(encodeDel([]byte(key))))
 	db.index++
 
 	return nil
@@ -171,15 +170,14 @@ func (db *DB) Keys(fn func(tp Type, ttl int64, key string) bool) {
 func (db *DB) DelayStart() {
 	db.mux.Lock()
 	defer db.mux.Unlock()
+	db.binTran.Reset()
 	db.isTranRunning = true
-	db.writer = db.binTran
 }
 
 func (db *DB) CleanDelayCommit() {
 	db.mux.Lock()
 	defer db.mux.Unlock()
-	db.binTran = new(bytes.Buffer)
-	db.writer = db.binTran
+	db.binTran.Reset()
 }
 
 func (db *DB) DelayCommit() uint64 {
@@ -189,7 +187,7 @@ func (db *DB) DelayCommit() uint64 {
 		return db.index
 	}
 
-	var bts, err = ioutil.ReadAll(db.writer)
+	var bts, err = ioutil.ReadAll(db.binTran)
 	panicIfNotNil(err)
 
 	if len(bts) == 0 {
@@ -208,7 +206,6 @@ func (db *DB) DelayCommit() uint64 {
 func (db *DB) DelayEnd() {
 	db.mux.Lock()
 	defer db.mux.Unlock()
-	db.writer = db.binLog
 	db.isTranRunning = false
 }
 

@@ -59,8 +59,24 @@ func (l *List) Range(fn func(value string)) {
 	}
 }
 
+func (l *List) Value() []string {
+	var res []string
+	for i := 0; i < len(l.data); i++ {
+		res = append(res, string(l.data[i]))
+	}
+	return res
+}
+
 func (l *List) Len() int {
 	return len(l.data)
+}
+
+func (h *Hash) Value() map[string]string {
+	var res = make(map[string]string)
+	for key, val := range h.data {
+		res[key] = string(val)
+	}
+	return res
 }
 
 func (h *Hash) Range(fn func(key string, value string)) {

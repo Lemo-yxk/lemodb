@@ -32,8 +32,7 @@ type DB struct {
 	once      sync.Once
 	comMux    sync.RWMutex
 
-	writer        io.ReadWriter
-	binTran       io.ReadWriter
+	binTran       *bytes.Buffer
 	isTranRunning bool
 	tranMux       sync.RWMutex
 
@@ -87,8 +86,6 @@ func (db *DB) Start() {
 		db.load(db.binLog, true)
 
 		db.compressed()
-
-		db.writer = db.binLog
 
 		db.binTran = new(bytes.Buffer)
 

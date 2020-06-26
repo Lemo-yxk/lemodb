@@ -40,7 +40,7 @@ func (db *DB) LPush(key string, value ...string) error {
 
 	if db.isTranRunning {
 		for i := 0; i < len(value); i++ {
-			panicIfNotNil(db.writer.Write(encodeLPush(k, []byte(value[i]))))
+			panicIfNotNil(db.binTran.Write(encodeLPush(k, []byte(value[i]))))
 		}
 		return nil
 	}
@@ -58,7 +58,7 @@ func (db *DB) LPush(key string, value ...string) error {
 
 	for i := 0; i < len(value); i++ {
 		list.data = append([][]byte{[]byte(value[i])}, list.data...)
-		panicIfNotNil(db.writer.Write(encodeLPush(k, []byte(value[i]))))
+		panicIfNotNil(db.binLog.Write(encodeLPush(k, []byte(value[i]))))
 		db.index++
 	}
 
@@ -80,7 +80,7 @@ func (db *DB) RPop(key string) (string, error) {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeRPop([]byte(key))))
+		panicIfNotNil(db.binTran.Write(encodeRPop([]byte(key))))
 		return "", nil
 	}
 
@@ -100,7 +100,7 @@ func (db *DB) RPop(key string) (string, error) {
 		return "", fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
 	}
 
-	panicIfNotNil(db.writer.Write(encodeRPop([]byte(key))))
+	panicIfNotNil(db.binLog.Write(encodeRPop([]byte(key))))
 	db.index++
 
 	return string(value), nil
@@ -135,7 +135,7 @@ func (db *DB) LRemV(key string, value string) (string, error) {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeLRem([]byte(key), index)))
+		panicIfNotNil(db.binTran.Write(encodeLRem([]byte(key), index)))
 		return "", nil
 	}
 
@@ -151,7 +151,7 @@ func (db *DB) LRemV(key string, value string) (string, error) {
 		return "", fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
 	}
 
-	panicIfNotNil(db.writer.Write(encodeLRem([]byte(key), index)))
+	panicIfNotNil(db.binLog.Write(encodeLRem([]byte(key), index)))
 	db.index++
 
 	return string(remVal), nil
@@ -183,7 +183,7 @@ func (db *DB) LRem(key string, index int) (string, error) {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeLRem([]byte(key), index)))
+		panicIfNotNil(db.binTran.Write(encodeLRem([]byte(key), index)))
 		return "", nil
 	}
 
@@ -199,7 +199,7 @@ func (db *DB) LRem(key string, index int) (string, error) {
 		return "", fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
 	}
 
-	panicIfNotNil(db.writer.Write(encodeLRem([]byte(key), index)))
+	panicIfNotNil(db.binLog.Write(encodeLRem([]byte(key), index)))
 	db.index++
 
 	return string(remVal), nil
@@ -240,7 +240,7 @@ func (db *DB) LSet(key string, index int, value string) error {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.writer.Write(encodeLSet(k, index, v)))
+		panicIfNotNil(db.binTran.Write(encodeLSet(k, index, v)))
 		return nil
 	}
 
@@ -252,7 +252,7 @@ func (db *DB) LSet(key string, index int, value string) error {
 
 	list.data[index] = v
 
-	panicIfNotNil(db.writer.Write(encodeLSet(k, index, v)))
+	panicIfNotNil(db.binLog.Write(encodeLSet(k, index, v)))
 	db.index++
 
 	return nil

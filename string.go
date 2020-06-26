@@ -36,7 +36,7 @@ func (db *DB) Set(key string, value string) error {
 	if db.data[key] == nil {
 
 		if db.isTranRunning {
-			panicIfNotNil(db.writer.Write(encodeSet(k, v)))
+			panicIfNotNil(db.binTran.Write(encodeSet(k, v)))
 			return nil
 		}
 		db.data[key] = &base{
@@ -53,14 +53,14 @@ func (db *DB) Set(key string, value string) error {
 		}
 
 		if db.isTranRunning {
-			panicIfNotNil(db.writer.Write(encodeSet(k, v)))
+			panicIfNotNil(db.binTran.Write(encodeSet(k, v)))
 			return nil
 		}
 
 		str.data = v
 	}
 
-	panicIfNotNil(db.writer.Write(encodeSet(k, v)))
+	panicIfNotNil(db.binLog.Write(encodeSet(k, v)))
 	db.index++
 
 	return nil
