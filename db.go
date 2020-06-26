@@ -18,6 +18,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -29,14 +30,14 @@ type DB struct {
 	indexFile *os.File
 	index     uint64
 	mux       sync.RWMutex
-	once      sync.Once
 	comMux    sync.RWMutex
+	once      sync.Once
 
-	binTran       *bytes.Buffer
 	isTranRunning bool
 	tranMux       sync.RWMutex
+	binTran       *bytes.Buffer
 
-	data map[string]*base
+	data []map[string]*base
 }
 
 var binDataPath = ""
@@ -44,6 +45,19 @@ var binLogPath = ""
 var binDataCopyPath = ""
 var binLogCopyPath = ""
 var indexPath = ""
+
+var NumberCpu = runtime.NumCPU()
+
+func (db *DB) newDataMap() {
+	db.data = db.data[:0]
+	for i := 0; i < NumberCpu; i++ {
+		db.data = append(db.data, make(map[string]*base))
+	}
+}
+
+func (db *DB) getDataMap(key []byte) map[string]*base {
+	return db.data[key[0]%byte(NumberCpu)]
+}
 
 func (db *DB) Start() {
 	db.once.Do(func() {
@@ -69,7 +83,7 @@ func (db *DB) Start() {
 
 		db.option.Path = absPath
 
-		db.data = make(map[string]*base)
+		db.newDataMap()
 
 		binDataPath = path.Join(db.option.Path, "bindata")
 		binLogPath = path.Join(db.option.Path, "binlog")
@@ -251,27 +265,29 @@ func (db *DB) compressed() {
 	var res []byte
 	var counter = 0
 	var size = 1024 * 1024 * 256
-	for _, item := range db.data {
 
-		switch item.tp {
-		case STRING:
-			var d = encodeString(item)
-			res = append(res, d...)
-			counter += len(d)
-		case LIST:
-			var d = encodeList(item)
-			res = append(res, d...)
-			counter += len(d)
-		case HASH:
-			var d = encodeHash(item)
-			res = append(res, d...)
-			counter += len(d)
-		}
+	for i := 0; i < len(db.data); i++ {
+		for key, item := range db.data[i] {
+			switch item.tp {
+			case STRING:
+				var d = encodeString(str2bytes(key), item)
+				res = append(res, d...)
+				counter += len(d)
+			case LIST:
+				var d = encodeList(str2bytes(key), item)
+				res = append(res, d...)
+				counter += len(d)
+			case HASH:
+				var d = encodeHash(str2bytes(key), item)
+				res = append(res, d...)
+				counter += len(d)
+			}
 
-		if counter >= size {
-			panicIfNotNil(db.binData.Write(res[0:counter]))
-			res = res[counter:]
-			counter = 0
+			if counter >= size {
+				panicIfNotNil(db.binData.Write(res[0:counter]))
+				res = res[counter:]
+				counter = 0
+			}
 		}
 	}
 
@@ -290,76 +306,87 @@ func (db *DB) read(bts []byte) uint64 {
 		switch command {
 		case HSET:
 			key, k, v := decodeHSet(message)
-			var sk = string(key)
-			if db.data[sk] == nil {
-				db.data[sk] = &base{
-					key: key, ttl: 0, tp: HASH,
+			var sk = bytes2str(key)
+			var dataMap = db.getDataMap(key)
+			if dataMap[sk] == nil {
+				dataMap[sk] = &base{
+					// key: key,
+					ttl: 0, tp: HASH,
 					data: &Hash{
-						data: map[string][]byte{string(k): v},
+						data: map[string][]byte{bytes2str(k): v},
 					},
 				}
 			} else {
-				var hash = db.data[sk].data.(*Hash)
-				hash.data[string(k)] = v
+				var hash = dataMap[sk].data.(*Hash)
+				hash.data[bytes2str(k)] = v
 			}
 		case HDEL:
 			key, k := decodeHDel(message)
-			var sk = string(key)
-			var hash = db.data[sk].data.(*Hash)
-			delete(hash.data, string(k))
+			var sk = bytes2str(key)
+			var dataMap = db.getDataMap(key)
+			var hash = dataMap[sk].data.(*Hash)
+			delete(hash.data, bytes2str(k))
 			if len(hash.data) == 0 {
-				delete(db.data, sk)
+				delete(dataMap, sk)
 			}
 		case SET:
 			key, v := decodeSet(message)
-			var k = string(key)
-			if db.data[k] == nil {
-				db.data[k] = &base{
-					key: key, ttl: 0, tp: STRING,
+			var sk = bytes2str(key)
+			var dataMap = db.getDataMap(key)
+			if dataMap[sk] == nil {
+				dataMap[sk] = &base{
+					// key: key,
+					ttl: 0, tp: STRING,
 					data: &String{
 						data: v,
 					},
 				}
 			} else {
-				var str = db.data[k].data.(*String)
+				var str = dataMap[sk].data.(*String)
 				str.data = v
 			}
 		case DEL:
 			key := decodeDel(message)
-			delete(db.data, string(key))
+			var dataMap = db.getDataMap(key)
+			delete(dataMap, bytes2str(key))
 		case TTL:
 			ttl, key := decodeTTL(message)
+			var dataMap = db.getDataMap(key)
 			if ttl != 0 && ttl < time.Now().UnixNano() {
-				delete(db.data, string(key))
+				delete(dataMap, bytes2str(key))
 			} else {
-				db.data[string(key)].ttl = ttl
+				dataMap[bytes2str(key)].ttl = ttl
 			}
 		case LPUSH:
 			key, v := decodeLPush(message)
-			var k = string(key)
-			if db.data[k] == nil {
-				db.data[k] = &base{
-					key: key, ttl: 0, tp: LIST,
+			var sk = bytes2str(key)
+			var dataMap = db.getDataMap(key)
+			if dataMap[sk] == nil {
+				dataMap[sk] = &base{
+					// key: key,
+					ttl: 0, tp: LIST,
 					data: &List{
 						data: [][]byte{v},
 					},
 				}
 			} else {
-				var list = db.data[k].data.(*List)
+				var list = dataMap[sk].data.(*List)
 				list.data = append([][]byte{v}, list.data...)
 			}
 		case RPOP:
 			key := decodeRPop(message)
-			var k = string(key)
-			var list = db.data[k].data.(*List)
+			var sk = bytes2str(key)
+			var dataMap = db.getDataMap(key)
+			var list = dataMap[sk].data.(*List)
 			list.data = list.data[0 : len(list.data)-1]
 			if len(list.data) == 0 {
-				delete(db.data, k)
+				delete(dataMap, sk)
 			}
 		case LREM:
 			index, key := decodeLRem(message)
-			var k = string(key)
-			var list = db.data[k].data.(*List)
+			var sk = bytes2str(key)
+			var dataMap = db.getDataMap(key)
+			var list = dataMap[sk].data.(*List)
 			l := len(list.data)
 			if index < 0 {
 				panic("index is less than 0")
@@ -370,13 +397,14 @@ func (db *DB) read(bts []byte) uint64 {
 
 			list.data = append(list.data[0:index], list.data[index+1:]...)
 			if len(list.data) == 0 {
-				delete(db.data, k)
+				delete(dataMap, sk)
 			}
 		case LSET:
 
 			index, key, v := decodeLSet(message)
-			var k = string(key)
-			var list = db.data[k].data.(*List)
+			var sk = bytes2str(key)
+			var dataMap = db.getDataMap(key)
+			var list = dataMap[sk].data.(*List)
 			l := len(list.data)
 			if index < 0 {
 				panic("index is less than 0")

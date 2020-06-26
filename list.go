@@ -24,7 +24,8 @@ func (db *DB) LPush(key string, value ...string) error {
 		return fmt.Errorf("value is empty")
 	}
 
-	if db.data[key] != nil && db.data[key].tp != LIST {
+	var dataMap = db.getDataMap([]byte(key))
+	if dataMap[key] != nil && dataMap[key].tp != LIST {
 		return fmt.Errorf("%s: is not list type", key)
 	}
 
@@ -45,16 +46,17 @@ func (db *DB) LPush(key string, value ...string) error {
 		return nil
 	}
 
-	if db.data[key] == nil {
-		db.data[key] = &base{
-			key: k, ttl: 0, tp: LIST,
+	if dataMap[key] == nil {
+		dataMap[key] = &base{
+			// key: k,
+			ttl: 0, tp: LIST,
 			data: &List{
 				data: [][]byte{},
 			},
 		}
 	}
 
-	var list = db.data[key].data.(*List)
+	var list = dataMap[key].data.(*List)
 
 	for i := 0; i < len(value); i++ {
 		list.data = append([][]byte{[]byte(value[i])}, list.data...)
@@ -69,7 +71,8 @@ func (db *DB) RPop(key string) (string, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 
 	if item == nil {
 		return "", fmt.Errorf("%s: not found", key)
@@ -93,7 +96,7 @@ func (db *DB) RPop(key string) (string, error) {
 	list.data = list.data[0 : l-1]
 
 	if len(list.data) == 0 {
-		delete(db.data, key)
+		delete(dataMap, key)
 	}
 
 	if item.ttl != 0 && item.ttl < time.Now().UnixNano() {
@@ -110,7 +113,8 @@ func (db *DB) LRemV(key string, value string) (string, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 
 	if item == nil {
 		return "", fmt.Errorf("%s: not found", key)
@@ -144,7 +148,7 @@ func (db *DB) LRemV(key string, value string) (string, error) {
 	list.data = append(list.data[0:index], list.data[index+1:]...)
 
 	if len(list.data) == 0 {
-		delete(db.data, key)
+		delete(dataMap, key)
 	}
 
 	if item.ttl != 0 && item.ttl < time.Now().UnixNano() {
@@ -161,13 +165,14 @@ func (db *DB) LRem(key string, index int) (string, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 
 	if item == nil {
 		return "", fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key] != nil && db.data[key].tp != LIST {
+	if dataMap[key] != nil && dataMap[key].tp != LIST {
 		return "", fmt.Errorf("%s: is not list type", key)
 	}
 
@@ -192,7 +197,7 @@ func (db *DB) LRem(key string, index int) (string, error) {
 	list.data = append(list.data[0:index], list.data[index+1:]...)
 
 	if len(list.data) == 0 {
-		delete(db.data, key)
+		delete(dataMap, key)
 	}
 
 	if item.ttl != 0 && item.ttl < time.Now().UnixNano() {
@@ -209,7 +214,8 @@ func (db *DB) LSet(key string, index int, value string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 
 	if item == nil {
 		return fmt.Errorf("%s: not found", key)
@@ -262,7 +268,8 @@ func (db *DB) List(key string) (*List, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 	if item == nil {
 		return nil, fmt.Errorf("%s: not found", key)
 	}

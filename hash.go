@@ -19,19 +19,20 @@ func (db *DB) HGet(key string, k string) (string, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	if db.data[key] == nil {
+	var dataMap = db.getDataMap([]byte(key))
+	if dataMap[key] == nil {
 		return "", fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key].tp != HASH {
+	if dataMap[key].tp != HASH {
 		return "", fmt.Errorf("%s: is not hash type", key)
 	}
 
-	if db.data[key].ttl != 0 && db.data[key].ttl < time.Now().UnixNano() {
-		return "", fmt.Errorf("expired: %d ms", (db.data[key].ttl-time.Now().UnixNano())/1e6)
+	if dataMap[key].ttl != 0 && dataMap[key].ttl < time.Now().UnixNano() {
+		return "", fmt.Errorf("expired: %d ms", (dataMap[key].ttl-time.Now().UnixNano())/1e6)
 	}
 
-	var hash = db.data[key].data.(*Hash)
+	var hash = dataMap[key].data.(*Hash)
 
 	if hash.data[k] == nil {
 		return "", fmt.Errorf("%s: not found in hash", k)
@@ -44,26 +45,28 @@ func (db *DB) HGetAll(key string) (*Hash, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	if db.data[key] == nil {
+	var dataMap = db.getDataMap([]byte(key))
+	if dataMap[key] == nil {
 		return nil, fmt.Errorf("%s: not found", key)
 	}
 
-	if db.data[key].tp != HASH {
+	if dataMap[key].tp != HASH {
 		return nil, fmt.Errorf("%s: is not hash type", key)
 	}
 
-	if db.data[key].ttl != 0 && db.data[key].ttl < time.Now().UnixNano() {
-		return nil, fmt.Errorf("expired: %d ms", (db.data[key].ttl-time.Now().UnixNano())/1e6)
+	if dataMap[key].ttl != 0 && dataMap[key].ttl < time.Now().UnixNano() {
+		return nil, fmt.Errorf("expired: %d ms", (dataMap[key].ttl-time.Now().UnixNano())/1e6)
 	}
 
-	return db.data[key].data.(*Hash), nil
+	return dataMap[key].data.(*Hash), nil
 }
 
 func (db *DB) HSet(key string, k string, v string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	if db.data[key] != nil && db.data[key].tp != HASH {
+	var dataMap = db.getDataMap([]byte(key))
+	if dataMap[key] != nil && dataMap[key].tp != HASH {
 		return fmt.Errorf("%s: is not hash type", key)
 	}
 
@@ -81,22 +84,22 @@ func (db *DB) HSet(key string, k string, v string) error {
 		return err
 	}
 
-	if db.data[key] == nil {
-
+	if dataMap[key] == nil {
 		if db.isTranRunning {
 			panicIfNotNil(db.binTran.Write(encodeHSet(kk, hk, hv)))
 			return nil
 		}
 
-		db.data[key] = &base{
-			key: kk, ttl: 0, tp: HASH,
+		dataMap[key] = &base{
+			// key: kk,
+			ttl: 0, tp: HASH,
 			data: &Hash{
 				data: map[string][]byte{k: hv},
 			},
 		}
 
 	} else {
-		var hash = db.data[key].data.(*Hash)
+		var hash = dataMap[key].data.(*Hash)
 
 		if string(hash.data[k]) == v {
 			return nil
@@ -120,7 +123,8 @@ func (db *DB) HDel(key string, k string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 	if item == nil {
 		return fmt.Errorf("%s: not found", key)
 	}
@@ -143,7 +147,7 @@ func (db *DB) HDel(key string, k string) error {
 	delete(hash.data, k)
 
 	if len(hash.data) == 0 {
-		delete(db.data, key)
+		delete(dataMap, key)
 	}
 
 	panicIfNotNil(db.binLog.Write(encodeHDel([]byte(key), []byte(k))))

@@ -21,7 +21,7 @@ import (
 func (db *DB) DropAll() {
 	db.mux.Lock()
 	defer db.mux.Unlock()
-	db.data = make(map[string]*base)
+	db.newDataMap()
 	db.index = 0
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
@@ -48,7 +48,7 @@ func (db *DB) Restore(r io.Reader) uint64 {
 		db.index = binary.LittleEndian.Uint64(buf)
 	}
 
-	db.data = make(map[string]*base)
+	db.newDataMap()
 	panicIfNotNil(db.binData.Truncate(0))
 	panicIfNotNil(db.binLog.Truncate(0))
 	panicIfNotNil(db.indexFile.WriteAt(buf, 0))
@@ -70,17 +70,19 @@ func (db *DB) Backup(w io.Writer) uint64 {
 
 	res = append(res, buf...)
 
-	for _, item := range db.data {
-		switch item.tp {
-		case STRING:
-			var d = encodeString(item)
-			res = append(res, d...)
-		case LIST:
-			var d = encodeList(item)
-			res = append(res, d...)
-		case HASH:
-			var d = encodeHash(item)
-			res = append(res, d...)
+	for i := 0; i < len(db.data); i++ {
+		for key, item := range db.data[i] {
+			switch item.tp {
+			case STRING:
+				var d = encodeString([]byte(key), item)
+				res = append(res, d...)
+			case LIST:
+				var d = encodeList([]byte(key), item)
+				res = append(res, d...)
+			case HASH:
+				var d = encodeHash([]byte(key), item)
+				res = append(res, d...)
+			}
 		}
 	}
 
@@ -92,14 +94,19 @@ func (db *DB) Backup(w io.Writer) uint64 {
 func (db *DB) Count() int {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
-	return len(db.data)
+	var n = 0
+	for i := 0; i < len(db.data); i++ {
+		n += len(db.data[i])
+	}
+	return n
 }
 
 func (db *DB) TTL(key string) (time.Duration, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 	if item == nil {
 		return 0, fmt.Errorf("%s: not found", key)
 	}
@@ -119,7 +126,8 @@ func (db *DB) Expired(key string, ttl time.Duration) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 	if item == nil {
 		return fmt.Errorf("%s: not found", key)
 	}
@@ -143,7 +151,8 @@ func (db *DB) Del(key string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var item = db.data[key]
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 	if item == nil {
 		return fmt.Errorf("%s: not found", key)
 	}
@@ -153,7 +162,7 @@ func (db *DB) Del(key string) error {
 		return nil
 	}
 
-	delete(db.data, key)
+	delete(dataMap, key)
 
 	panicIfNotNil(db.binLog.Write(encodeDel([]byte(key))))
 	db.index++
@@ -162,9 +171,11 @@ func (db *DB) Del(key string) error {
 }
 
 func (db *DB) Keys(fn func(tp Type, ttl int64, key string) bool) {
-	for key, value := range db.data {
-		if !fn(value.tp, time.Duration(value.ttl).Milliseconds(), key) {
-			return
+	for i := 0; i < len(db.data); i++ {
+		for key, value := range db.data[i] {
+			if !fn(value.tp, time.Duration(value.ttl).Milliseconds(), key) {
+				return
+			}
 		}
 	}
 }

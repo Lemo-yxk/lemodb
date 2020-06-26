@@ -90,43 +90,43 @@ func checkValue(value []byte) error {
 	return nil
 }
 
-func encodeString(item *base) (message []byte) {
+func encodeString(key []byte, item *base) (message []byte) {
 	var str = item.data.(*String)
-	var data = encodeSet(item.key, str.data)
+	var data = encodeSet(key, str.data)
 
 	var t = time.Now().UnixNano()
 
 	if item.ttl > t {
-		data = append(data, encodeTTL(item.key, item.ttl)...)
+		data = append(data, encodeTTL(key, item.ttl)...)
 	}
 
 	return data
 }
 
-func encodeList(item *base) (message []byte) {
+func encodeList(key []byte, item *base) (message []byte) {
 	var list = item.data.(*List)
 	var data []byte
 	var t = time.Now().UnixNano()
 	for i := len(list.data) - 1; i >= 0; i-- {
-		data = append(data, encodeLPush(item.key, list.data[i])...)
+		data = append(data, encodeLPush(key, list.data[i])...)
 	}
 	if item.ttl > t {
-		data = append(data, encodeTTL(item.key, item.ttl)...)
+		data = append(data, encodeTTL(key, item.ttl)...)
 	}
 
 	return data
 }
 
-func encodeHash(item *base) (message []byte) {
+func encodeHash(key []byte, item *base) (message []byte) {
 	var hash = item.data.(*Hash)
 	var data []byte
 	var t = time.Now().UnixNano()
-	for key, value := range hash.data {
-		data = append(data, encodeHSet(item.key, []byte(key), value)...)
+	for hashKey, value := range hash.data {
+		data = append(data, encodeHSet(key, str2bytes(hashKey), value)...)
 	}
 
 	if item.ttl > t {
-		data = append(data, encodeTTL(item.key, item.ttl)...)
+		data = append(data, encodeTTL(key, item.ttl)...)
 	}
 
 	return data

@@ -19,7 +19,8 @@ func (db *DB) Set(key string, value string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	if db.data[key] != nil && db.data[key].tp != STRING {
+	var dataMap = db.getDataMap([]byte(key))
+	if dataMap[key] != nil && dataMap[key].tp != STRING {
 		return fmt.Errorf("%s: is not string type", key)
 	}
 
@@ -33,21 +34,21 @@ func (db *DB) Set(key string, value string) error {
 		return err
 	}
 
-	if db.data[key] == nil {
-
+	if dataMap[key] == nil {
 		if db.isTranRunning {
 			panicIfNotNil(db.binTran.Write(encodeSet(k, v)))
 			return nil
 		}
-		db.data[key] = &base{
-			key: k, ttl: 0, tp: STRING,
+
+		dataMap[key] = &base{
+			// key: k,
+			ttl: 0, tp: STRING,
 			data: &String{
 				data: v,
 			},
 		}
-
 	} else {
-		var str = db.data[key].data.(*String)
+		var str = dataMap[key].data.(*String)
 		if string(str.data) == value {
 			return nil
 		}
@@ -69,7 +70,9 @@ func (db *DB) Set(key string, value string) error {
 func (db *DB) Get(key string) (*String, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
-	var item = db.data[key]
+
+	var dataMap = db.getDataMap([]byte(key))
+	var item = dataMap[key]
 
 	if item == nil {
 		return nil, fmt.Errorf("%s: not found", key)

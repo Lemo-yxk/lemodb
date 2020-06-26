@@ -29,7 +29,7 @@ func getList(list *List) string {
 	return s
 }
 
-func TestString(t *testing.T) {
+func aTestString(t *testing.T) {
 
 	// DropAll
 	db.DropAll()

@@ -126,6 +126,7 @@ func main() {
 	//
 	// log.Println(db.List("b"))
 
+	log.Println(db.Get("2539305"))
 	log.Println(db.Count())
 
 	_ = db

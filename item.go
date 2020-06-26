@@ -31,7 +31,7 @@ func (t Type) String() string {
 }
 
 type base struct {
-	key  []byte
+	// key  []byte
 	ttl  int64
 	tp   Type
 	data interface{}
