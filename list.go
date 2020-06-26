@@ -24,24 +24,24 @@ func (db *DB) LPush(key string, value ...string) error {
 		return fmt.Errorf("value is empty")
 	}
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	if dataMap[key] != nil && dataMap[key].tp != LIST {
 		return fmt.Errorf("%s: is not list type", key)
 	}
 
-	var k = []byte(key)
+	var k = str2bytes(key)
 	if err := checkKey(k); err != nil {
 		return err
 	}
 	for i := 0; i < len(value); i++ {
-		if err := checkValue([]byte(value[i])); err != nil {
+		if err := checkValue(str2bytes(value[i])); err != nil {
 			return err
 		}
 	}
 
 	if db.isTranRunning {
 		for i := 0; i < len(value); i++ {
-			panicIfNotNil(db.binTran.Write(encodeLPush(k, []byte(value[i]))))
+			panicIfNotNil(db.binTran.Write(encodeLPush(k, str2bytes(value[i]))))
 		}
 		return nil
 	}
@@ -60,7 +60,7 @@ func (db *DB) LPush(key string, value ...string) error {
 
 	for i := 0; i < len(value); i++ {
 		list.data = append([][]byte{[]byte(value[i])}, list.data...)
-		panicIfNotNil(db.binLog.Write(encodeLPush(k, []byte(value[i]))))
+		panicIfNotNil(db.binLog.Write(encodeLPush(k, str2bytes(value[i]))))
 		db.index++
 	}
 
@@ -71,7 +71,7 @@ func (db *DB) RPop(key string) (string, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 
 	if item == nil {
@@ -83,7 +83,7 @@ func (db *DB) RPop(key string) (string, error) {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.binTran.Write(encodeRPop([]byte(key))))
+		panicIfNotNil(db.binTran.Write(encodeRPop(str2bytes(key))))
 		return "", nil
 	}
 
@@ -103,7 +103,7 @@ func (db *DB) RPop(key string) (string, error) {
 		return "", fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
 	}
 
-	panicIfNotNil(db.binLog.Write(encodeRPop([]byte(key))))
+	panicIfNotNil(db.binLog.Write(encodeRPop(str2bytes(key))))
 	db.index++
 
 	return string(value), nil
@@ -113,7 +113,7 @@ func (db *DB) LRemV(key string, value string) (string, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 
 	if item == nil {
@@ -128,7 +128,7 @@ func (db *DB) LRemV(key string, value string) (string, error) {
 
 	var index = -1
 	for i := 0; i < len(list.data); i++ {
-		if string(list.data[i]) == value {
+		if bytes2str(list.data[i]) == value {
 			index = i
 			break
 		}
@@ -139,7 +139,7 @@ func (db *DB) LRemV(key string, value string) (string, error) {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.binTran.Write(encodeLRem([]byte(key), index)))
+		panicIfNotNil(db.binTran.Write(encodeLRem(str2bytes(key), index)))
 		return "", nil
 	}
 
@@ -155,7 +155,7 @@ func (db *DB) LRemV(key string, value string) (string, error) {
 		return "", fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
 	}
 
-	panicIfNotNil(db.binLog.Write(encodeLRem([]byte(key), index)))
+	panicIfNotNil(db.binLog.Write(encodeLRem(str2bytes(key), index)))
 	db.index++
 
 	return string(remVal), nil
@@ -165,7 +165,7 @@ func (db *DB) LRem(key string, index int) (string, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 
 	if item == nil {
@@ -188,7 +188,7 @@ func (db *DB) LRem(key string, index int) (string, error) {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.binTran.Write(encodeLRem([]byte(key), index)))
+		panicIfNotNil(db.binTran.Write(encodeLRem(str2bytes(key), index)))
 		return "", nil
 	}
 
@@ -204,7 +204,7 @@ func (db *DB) LRem(key string, index int) (string, error) {
 		return "", fmt.Errorf("expired: %d ms", (item.ttl-time.Now().UnixNano())/1e6)
 	}
 
-	panicIfNotNil(db.binLog.Write(encodeLRem([]byte(key), index)))
+	panicIfNotNil(db.binLog.Write(encodeLRem(str2bytes(key), index)))
 	db.index++
 
 	return string(remVal), nil
@@ -214,7 +214,7 @@ func (db *DB) LSet(key string, index int, value string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 
 	if item == nil {
@@ -225,7 +225,7 @@ func (db *DB) LSet(key string, index int, value string) error {
 		return fmt.Errorf("%s: is not list type", key)
 	}
 
-	var k = []byte(key)
+	var k = str2bytes(key)
 	var v = []byte(value)
 	if err := checkKey(k); err != nil {
 		return err
@@ -268,7 +268,7 @@ func (db *DB) List(key string) (*List, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 	if item == nil {
 		return nil, fmt.Errorf("%s: not found", key)

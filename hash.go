@@ -19,7 +19,7 @@ func (db *DB) HGet(key string, k string) (string, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	if dataMap[key] == nil {
 		return "", fmt.Errorf("%s: not found", key)
 	}
@@ -45,7 +45,7 @@ func (db *DB) HGetAll(key string) (*Hash, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	if dataMap[key] == nil {
 		return nil, fmt.Errorf("%s: not found", key)
 	}
@@ -65,13 +65,13 @@ func (db *DB) HSet(key string, k string, v string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	if dataMap[key] != nil && dataMap[key].tp != HASH {
 		return fmt.Errorf("%s: is not hash type", key)
 	}
 
-	var kk = []byte(key)
-	var hk = []byte(k)
+	var kk = str2bytes(key)
+	var hk = str2bytes(k)
 	var hv = []byte(v)
 
 	if err := checkKey(kk); err != nil {
@@ -101,7 +101,7 @@ func (db *DB) HSet(key string, k string, v string) error {
 	} else {
 		var hash = dataMap[key].data.(*Hash)
 
-		if string(hash.data[k]) == v {
+		if bytes2str(hash.data[k]) == v {
 			return nil
 		}
 
@@ -123,7 +123,7 @@ func (db *DB) HDel(key string, k string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 	if item == nil {
 		return fmt.Errorf("%s: not found", key)
@@ -140,7 +140,7 @@ func (db *DB) HDel(key string, k string) error {
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.binTran.Write(encodeHDel([]byte(key), []byte(k))))
+		panicIfNotNil(db.binTran.Write(encodeHDel(str2bytes(key), str2bytes(k))))
 		return nil
 	}
 
@@ -150,7 +150,7 @@ func (db *DB) HDel(key string, k string) error {
 		delete(dataMap, key)
 	}
 
-	panicIfNotNil(db.binLog.Write(encodeHDel([]byte(key), []byte(k))))
+	panicIfNotNil(db.binLog.Write(encodeHDel(str2bytes(key), str2bytes(k))))
 	db.index++
 
 	return nil

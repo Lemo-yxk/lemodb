@@ -74,13 +74,13 @@ func (db *DB) Backup(w io.Writer) uint64 {
 		for key, item := range db.data[i] {
 			switch item.tp {
 			case STRING:
-				var d = encodeString([]byte(key), item)
+				var d = encodeString(str2bytes(key), item)
 				res = append(res, d...)
 			case LIST:
-				var d = encodeList([]byte(key), item)
+				var d = encodeList(str2bytes(key), item)
 				res = append(res, d...)
 			case HASH:
-				var d = encodeHash([]byte(key), item)
+				var d = encodeHash(str2bytes(key), item)
 				res = append(res, d...)
 			}
 		}
@@ -105,7 +105,7 @@ func (db *DB) TTL(key string) (time.Duration, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 	if item == nil {
 		return 0, fmt.Errorf("%s: not found", key)
@@ -126,7 +126,7 @@ func (db *DB) Expired(key string, ttl time.Duration) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 	if item == nil {
 		return fmt.Errorf("%s: not found", key)
@@ -135,13 +135,13 @@ func (db *DB) Expired(key string, ttl time.Duration) error {
 	var t = time.Now().Add(ttl).UnixNano()
 
 	if db.isTranRunning {
-		panicIfNotNil(db.binTran.Write(encodeTTL([]byte(key), t)))
+		panicIfNotNil(db.binTran.Write(encodeTTL(str2bytes(key), t)))
 		return nil
 	}
 
 	item.ttl = t
 
-	panicIfNotNil(db.binLog.Write(encodeTTL([]byte(key), t)))
+	panicIfNotNil(db.binLog.Write(encodeTTL(str2bytes(key), t)))
 	db.index++
 
 	return nil
@@ -151,20 +151,20 @@ func (db *DB) Del(key string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 	if item == nil {
 		return fmt.Errorf("%s: not found", key)
 	}
 
 	if db.isTranRunning {
-		panicIfNotNil(db.binTran.Write(encodeDel([]byte(key))))
+		panicIfNotNil(db.binTran.Write(encodeDel(str2bytes(key))))
 		return nil
 	}
 
 	delete(dataMap, key)
 
-	panicIfNotNil(db.binLog.Write(encodeDel([]byte(key))))
+	panicIfNotNil(db.binLog.Write(encodeDel(str2bytes(key))))
 	db.index++
 
 	return nil

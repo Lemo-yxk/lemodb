@@ -19,12 +19,12 @@ func (db *DB) Set(key string, value string) error {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	if dataMap[key] != nil && dataMap[key].tp != STRING {
 		return fmt.Errorf("%s: is not string type", key)
 	}
 
-	var k = []byte(key)
+	var k = str2bytes(key)
 	var v = []byte(value)
 
 	if err := checkKey(k); err != nil {
@@ -49,7 +49,7 @@ func (db *DB) Set(key string, value string) error {
 		}
 	} else {
 		var str = dataMap[key].data.(*String)
-		if string(str.data) == value {
+		if bytes2str(str.data) == value {
 			return nil
 		}
 
@@ -71,7 +71,7 @@ func (db *DB) Get(key string) (*String, error) {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 
-	var dataMap = db.getDataMap([]byte(key))
+	var dataMap = db.getDataMap(str2bytes(key))
 	var item = dataMap[key]
 
 	if item == nil {
