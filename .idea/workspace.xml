@@ -19,13 +19,10 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c51c8e02-00b7-4fc1-aeea-2c17eb788cba" name="Default Changelist" comment="1.back to old.">
+    <list default="true" id="c51c8e02-00b7-4fc1-aeea-2c17eb788cba" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/common.go" beforeDir="false" afterPath="$PROJECT_DIR$/common.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/hash.go" beforeDir="false" afterPath="$PROJECT_DIR$/hash.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/key_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/key_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/list.go" beforeDir="false" afterPath="$PROJECT_DIR$/list.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/string.go" beforeDir="false" afterPath="$PROJECT_DIR$/string.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/example/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/example/main.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,7 +77,7 @@
       <recent name="$PROJECT_DIR$/example" />
     </key>
   </component>
-  <component name="RunManager" selected="Go Build.go build github.com/Lemo-yxk/lemodb/example">
+  <component name="RunManager" selected="Go Build.go build github.com/lemoyxk/lemodb/example">
     <configuration name="go build github.com/Lemo-yxk/lemodb/example" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
       <module name="lemodb" />
       <working_directory value="$PROJECT_DIR$" />
@@ -88,6 +85,15 @@
       <filePath value="$PROJECT_DIR$/example/main.go" />
       <package value="github.com/Lemo-yxk/lemodb/example" />
       <directory value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="go build github.com/lemoyxk/lemodb/example" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="lemodb" />
+      <working_directory value="$PROJECT_DIR$" />
+      <kind value="PACKAGE" />
+      <filePath value="$PROJECT_DIR$/example/main.go" />
+      <package value="github.com/lemoyxk/lemodb/example" />
+      <directory value="$PROJECT_DIR$" />
       <method v="2" />
     </configuration>
     <configuration name="go build lemodb/example (1)" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
@@ -108,6 +114,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Go Build.go build github.com/lemoyxk/lemodb/example" />
         <item itemvalue="Go Build.go build github.com/Lemo-yxk/lemodb/example" />
         <item itemvalue="Go Build.go build lemodb/example (1)" />
         <item itemvalue="Go Build.go build lemodb/example" />
@@ -159,10 +166,10 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="515" y="157" key="#go_build_lemodb/example_(1)/0.23.1680.978@0.23.1680.978" timestamp="1592399872142" />
-    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1593197374352">
+    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1593198097555">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1593197374352" />
+    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1593198097555" />
     <state x="100" y="123" width="1480" height="778" key="DiffContextDialog" timestamp="1593195472783">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
@@ -203,10 +210,10 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="570" y="251" width="540" height="540" key="StructurePopup/0.23.1680.978@0.23.1680.978" timestamp="1592063978175" />
-    <state x="440" y="253" key="Vcs.Push.Dialog.v2" timestamp="1593197331742">
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2" timestamp="1593198098828">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="440" y="253" key="Vcs.Push.Dialog.v2/0.23.1680.978@0.23.1680.978" timestamp="1593197331742" />
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2/0.23.1680.978@0.23.1680.978" timestamp="1593198098828" />
     <state x="100" y="123" width="1480" height="778" key="com.intellij.history.integration.ui.views.DirectoryHistoryDialog" timestamp="1593195472784">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
@@ -215,10 +222,10 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="100" y="123" width="1480" height="778" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.23.1680.978@0.23.1680.978" timestamp="1593184075600" />
-    <state x="522" y="267" width="635" height="490" key="find.popup" timestamp="1593198079241">
+    <state x="522" y="267" width="635" height="550" key="find.popup" timestamp="1594478280910">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="522" y="267" width="635" height="490" key="find.popup/0.23.1680.978@0.23.1680.978" timestamp="1593198079241" />
+    <state x="522" y="267" width="635" height="550" key="find.popup/0.23.1680.978@0.23.1680.978" timestamp="1594478280910" />
     <state x="505" y="238" width="670" height="676" key="search.everywhere.popup" timestamp="1592204370196">
       <screen x="0" y="23" width="1680" height="978" />
     </state>

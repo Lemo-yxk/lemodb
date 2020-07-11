@@ -1,3 +1,3 @@
-module 	github.com/Lemo-yxk/lemodb
+module 	github.com/lemoyxk/lemodb
 
-go 1.14
+go 1.15

@@ -13,7 +13,7 @@ package main
 import (
 	"log"
 
-	"github.com/Lemo-yxk/lemodb"
+	"github.com/lemoyxk/lemodb"
 )
 
 func init() {
