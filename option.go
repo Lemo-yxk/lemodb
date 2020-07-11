@@ -11,6 +11,5 @@
 package lemodb
 
 type Option struct {
-	Path   string
-	Logger Logger
+	Path string
 }

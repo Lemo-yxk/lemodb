@@ -11,6 +11,7 @@
 package lemodb
 
 import (
+	"fmt"
 	"os"
 	"unsafe"
 )
@@ -20,7 +21,7 @@ func panicIfNotNil(v ...interface{}) {
 
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf("%v", err)
+				fmt.Printf("%v", err)
 				os.Exit(0)
 			}
 		}()

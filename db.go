@@ -13,6 +13,7 @@ package lemodb
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -70,12 +71,6 @@ func (db *DB) Start() {
 			panic("path is nil")
 		}
 
-		if db.option.Logger == nil {
-			db.option.Logger = new(defaultLogger)
-		}
-
-		log = db.option.Logger
-
 		var t = time.Now()
 
 		var absPath, err = filepath.Abs(db.option.Path)
@@ -103,8 +98,8 @@ func (db *DB) Start() {
 
 		db.binTran = new(bytes.Buffer)
 
-		log.Infof("start success in %d ms\n", time.Now().Sub(t).Milliseconds())
-		log.Infof("keys: %d\n", db.Count())
+		fmt.Printf("start success in %d ms\n", time.Now().Sub(t).Milliseconds())
+		fmt.Printf("keys: %d\n", db.Count())
 	})
 }
 
