@@ -19,12 +19,11 @@
     <select />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c51c8e02-00b7-4fc1-aeea-2c17eb788cba" name="Default Changelist" comment="">
+    <list default="true" id="c51c8e02-00b7-4fc1-aeea-2c17eb788cba" name="Default Changelist" comment="1.back to old.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db.go" beforeDir="false" afterPath="$PROJECT_DIR$/db.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logger.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/option.go" beforeDir="false" afterPath="$PROJECT_DIR$/option.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils.go" beforeDir="false" afterPath="$PROJECT_DIR$/utils.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/benchmark_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/key_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/key_test.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,7 +37,7 @@
       </list>
     </option>
   </component>
-  <component name="GOROOT" path="/usr/local/Cellar/go/1.14.4/libexec" />
+  <component name="GOROOT" path="/usr/local/Cellar/go/1.15.1/libexec" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
@@ -73,7 +72,7 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="nodejs_package_manager_path" value="npm" />
-    <property name="settings.editor.selected.configurable" value="preferences.pluginManager" />
+    <property name="settings.editor.selected.configurable" value="go.sdk" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -153,10 +152,10 @@
     <integration-enabled>true</integration-enabled>
   </component>
   <component name="WindowStateProjectService">
-    <state x="593" y="451" key="#GOROOT" timestamp="1593183121630">
+    <state x="593" y="451" key="#GOROOT" timestamp="1595338077852">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="593" y="451" key="#GOROOT/0.23.1680.978@0.23.1680.978" timestamp="1593183121630" />
+    <state x="593" y="451" key="#GOROOT/0.23.1680.978@0.23.1680.978" timestamp="1595338077852" />
     <state x="640" y="354" key="#Go_Modules" timestamp="1592028961120">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
@@ -173,30 +172,30 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="515" y="157" key="#go_build_lemodb/example_(1)/0.23.1680.978@0.23.1680.978" timestamp="1592399872142" />
-    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1594478333065">
+    <state x="379" y="93" key="CommitChangelistDialog2" timestamp="1600067958455">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1594478333065" />
-    <state x="100" y="123" width="1480" height="778" key="DiffContextDialog" timestamp="1593195472783">
+    <state x="379" y="93" key="CommitChangelistDialog2/0.23.1680.978@0.23.1680.978" timestamp="1600067958455" />
+    <state x="100" y="123" width="1480" height="778" key="DiffContextDialog" timestamp="1600067956284">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="100" y="123" width="1480" height="778" key="DiffContextDialog/0.23.1680.978@0.23.1680.978" timestamp="1593195472783" />
-    <state width="1161" height="270" key="GridCell.Tab.0.bottom" timestamp="1594479216043">
+    <state x="100" y="123" width="1480" height="778" key="DiffContextDialog/0.23.1680.978@0.23.1680.978" timestamp="1600067956284" />
+    <state width="1161" height="270" key="GridCell.Tab.0.bottom" timestamp="1595338395996">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="270" key="GridCell.Tab.0.bottom/0.23.1680.978@0.23.1680.978" timestamp="1594479216043" />
-    <state width="1161" height="270" key="GridCell.Tab.0.center" timestamp="1594479216042">
+    <state width="1161" height="270" key="GridCell.Tab.0.bottom/0.23.1680.978@0.23.1680.978" timestamp="1595338395996" />
+    <state width="1161" height="270" key="GridCell.Tab.0.center" timestamp="1595338395995">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="270" key="GridCell.Tab.0.center/0.23.1680.978@0.23.1680.978" timestamp="1594479216042" />
-    <state width="1161" height="270" key="GridCell.Tab.0.left" timestamp="1594479216042">
+    <state width="1161" height="270" key="GridCell.Tab.0.center/0.23.1680.978@0.23.1680.978" timestamp="1595338395995" />
+    <state width="1161" height="270" key="GridCell.Tab.0.left" timestamp="1595338395995">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="270" key="GridCell.Tab.0.left/0.23.1680.978@0.23.1680.978" timestamp="1594479216042" />
-    <state width="1161" height="270" key="GridCell.Tab.0.right" timestamp="1594479216042">
+    <state width="1161" height="270" key="GridCell.Tab.0.left/0.23.1680.978@0.23.1680.978" timestamp="1595338395995" />
+    <state width="1161" height="270" key="GridCell.Tab.0.right" timestamp="1595338395996">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state width="1161" height="270" key="GridCell.Tab.0.right/0.23.1680.978@0.23.1680.978" timestamp="1594479216042" />
+    <state width="1161" height="270" key="GridCell.Tab.0.right/0.23.1680.978@0.23.1680.978" timestamp="1595338395996" />
     <state width="1161" height="334" key="GridCell.Tab.1.bottom" timestamp="1592153139850">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
@@ -213,14 +212,18 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state width="1161" height="334" key="GridCell.Tab.1.right/0.23.1680.978@0.23.1680.978" timestamp="1592153139849" />
+    <state x="371" y="151" key="SettingsEditor" timestamp="1600066127488">
+      <screen x="0" y="23" width="1680" height="978" />
+    </state>
+    <state x="371" y="151" key="SettingsEditor/0.23.1680.978@0.23.1680.978" timestamp="1600066127488" />
     <state x="570" y="251" width="540" height="540" key="StructurePopup" timestamp="1592063978175">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="570" y="251" width="540" height="540" key="StructurePopup/0.23.1680.978@0.23.1680.978" timestamp="1592063978175" />
-    <state x="440" y="253" key="Vcs.Push.Dialog.v2" timestamp="1594478334186">
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2" timestamp="1594479253227">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="440" y="253" key="Vcs.Push.Dialog.v2/0.23.1680.978@0.23.1680.978" timestamp="1594478334186" />
+    <state x="440" y="253" key="Vcs.Push.Dialog.v2/0.23.1680.978@0.23.1680.978" timestamp="1594479253227" />
     <state x="100" y="123" width="1480" height="778" key="com.intellij.history.integration.ui.views.DirectoryHistoryDialog" timestamp="1593195472784">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
@@ -229,10 +232,10 @@
       <screen x="0" y="23" width="1680" height="978" />
     </state>
     <state x="100" y="123" width="1480" height="778" key="com.intellij.history.integration.ui.views.FileHistoryDialog/0.23.1680.978@0.23.1680.978" timestamp="1593184075600" />
-    <state x="522" y="267" width="635" height="550" key="find.popup" timestamp="1594479160582">
+    <state x="522" y="267" width="635" height="550" key="find.popup" timestamp="1594491992187">
       <screen x="0" y="23" width="1680" height="978" />
     </state>
-    <state x="522" y="267" width="635" height="550" key="find.popup/0.23.1680.978@0.23.1680.978" timestamp="1594479160582" />
+    <state x="522" y="267" width="635" height="550" key="find.popup/0.23.1680.978@0.23.1680.978" timestamp="1594491992187" />
     <state x="715" y="376" width="250" height="278" key="jetbrains.javascript.buildTools.run-task-popup" timestamp="1594478318437">
       <screen x="0" y="23" width="1680" height="978" />
     </state>

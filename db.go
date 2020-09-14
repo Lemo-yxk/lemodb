@@ -224,7 +224,7 @@ func (db *DB) size() int64 {
 	logInfo, err := db.binLog.Stat()
 	panicIfNotNil(err)
 
-	dataInfo, err := db.binLog.Stat()
+	dataInfo, err := db.binData.Stat()
 	panicIfNotNil(err)
 
 	return logInfo.Size() + dataInfo.Size()
